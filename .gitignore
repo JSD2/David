@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/
+
+# La base : elle vit sur le serveur (volume), jamais dans le dépôt.
+*.sqlite3
+*.sqlite3-journal
+
+# Secrets de déploiement
+.env
+
+node_modules/

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--ROBOTS-->
+<title>Services ambulants — trouver un emplacement, trouver un service</title>
+<meta name="description" content="La carte qui met en relation les communes, campings, entreprises qui veulent accueillir un service ambulant, et les services ambulants qui cherchent un emplacement.">
+<link rel="icon" href="/static/icone.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<!--BANDEAU-->
+<header id="entete">
+  <div class="marque">
+    <strong>Services ambulants</strong>
+    <span class="provisoire" title="Le nom du site n'est pas encore choisi">nom provisoire</span>
+  </div>
+  <div id="sens" class="segments" role="radiogroup" aria-label="Ce que je cherche" data-droit="filtre_sens">
+    <button type="button" role="radio" aria-checked="true" data-sens="tout">Tout</button>
+    <button type="button" role="radio" aria-checked="false" data-sens="demande"
+            title="Vous accueillez : voir les services ambulants qui cherchent un emplacement">Je cherche un service</button>
+    <button type="button" role="radio" aria-checked="false" data-sens="emplacement"
+            title="Vous êtes un service ambulant : voir les emplacements proposés">Je cherche un emplacement</button>
+  </div>
+  <div class="actions-entete">
+    <button type="button" id="bouton-publier" class="principal" hidden>Publier</button>
+    <button type="button" id="bouton-console" hidden>Console</button>
+    <button type="button" id="bouton-compte">Se connecter</button>
+  </div>
+</header>
+
+<div id="outils">
+  <form id="recherche" role="search" data-droit="recherche_adresse">
+    <label class="invisible" for="recherche-texte">Chercher une commune ou une adresse</label>
+    <input id="recherche-texte" type="search" placeholder="Commune ou adresse…" autocomplete="off">
+    <ul id="recherche-resultats" hidden></ul>
+  </form>
+  <label class="filtre-categorie" data-droit="filtre_categories">
+    <span class="invisible">Catégorie</span>
+    <select id="filtre-categorie"><option value="">Toutes les activités</option></select>
+  </label>
+  <div id="fonds" class="segments petits" role="radiogroup" aria-label="Fond de carte">
+    <button type="button" role="radio" aria-checked="true" data-fond="plan">Plan</button>
+    <button type="button" role="radio" aria-checked="false" data-fond="satellite">Satellite</button>
+  </div>
+</div>
+
+<main id="principal">
+  <div id="carte" aria-label="Carte des emplacements et des demandes"></div>
+  <aside id="panneau" hidden aria-live="polite">
+    <button type="button" id="fermer-panneau" aria-label="Fermer">×</button>
+    <div id="contenu-panneau"></div>
+  </aside>
+  <div id="legende">
+    <span><i class="pastille emplacement"></i> Emplacement proposé</span>
+    <span><i class="pastille besoin"></i> Besoin d'une commune</span>
+    <span><i class="pastille demande"></i> Service qui cherche</span>
+    <span id="compte-annonces"></span>
+  </div>
+</main>
+
+<footer id="pied">
+  Ce site aide à se trouver ; il ne délivre aucune autorisation.
+  · Fonds de carte © IGN — Géoplateforme · version {{VERSION}}
+</footer>
+
+<script id="donnees" type="application/json"><!--DONNEES--></script>
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

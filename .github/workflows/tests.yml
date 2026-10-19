@@ -1,0 +1,40 @@
+# La suite, sur l'interpréteur le plus ancien visé (3.8) et sur un récent.
+#
+# Ne tourne qu'à l'entrée de « main », c'est-à-dire de la production, et à
+# la demande (repris de WAY2NAV, dont le quota GitHub Actions s'est épuisé
+# en septembre 2026 sur un dépôt privé). Le reste est relu sur la machine
+# qui pousse : « githooks/pre-push ».
+name: Tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ["**.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # Node est un outil d'essai (le service worker), pas une dépendance.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install "pytest<8" pytest-xdist
+      # Sans Node, les essais JavaScript se sauteraient en silence ; ici,
+      # leur absence est une erreur.
+      - run: python -m pytest -q -n auto
+        env:
+          AMBULANTS_EXIGE_NODE: "1"

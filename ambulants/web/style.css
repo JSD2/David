@@ -1,0 +1,100 @@
+/* La feuille du site. Sobre exprès : la carte est le sujet. */
+:root {
+  --fond: #ffffff;
+  --texte: #1f2937;
+  --doux: #6b7280;
+  --bord: #d1d5db;
+  --accent: #1d4ed8;
+  --emplacement: #1d4ed8;
+  --besoin: #7c3aed;
+  --demande: #c2410c;
+  --alerte-fond: #fef3c7;
+  --alerte-texte: #78350f;
+  --sys: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { display: flex; flex-direction: column; background: var(--fond); color: var(--texte); font: 15px/1.45 var(--sys); }
+button, input, select, textarea { font: inherit; }
+.invisible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+#bandeau-essai { background: #6d28d9; color: #fff; text-align: center; font-weight: 700; font-size: 13px; padding: 4px 8px; }
+
+#entete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 16px; border-bottom: 1px solid var(--bord); }
+.marque strong { font-size: 17px; }
+.provisoire { margin-left: 6px; font-size: 11px; color: var(--doux); border: 1px dashed var(--bord); border-radius: 4px; padding: 0 4px; }
+.actions-entete { margin-left: auto; display: flex; gap: 8px; }
+
+button { min-height: 36px; padding: 0 12px; border: 1px solid var(--bord); border-radius: 8px; background: #fff; color: var(--texte); cursor: pointer; }
+button.principal { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.danger { border-color: #b91c1c; color: #b91c1c; }
+button:disabled { opacity: .5; cursor: default; }
+
+.segments { display: inline-flex; border: 1px solid var(--bord); border-radius: 999px; overflow: hidden; }
+.segments button { border: 0; border-radius: 0; min-height: 34px; }
+.segments button[aria-checked="true"] { background: var(--texte); color: #fff; }
+.segments.petits button { min-height: 30px; font-size: 13px; }
+
+#outils { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--bord); }
+#recherche { position: relative; flex: 1 1 220px; max-width: 420px; }
+#recherche-texte { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--bord); border-radius: 8px; }
+#recherche-resultats { position: absolute; z-index: 1000; top: 100%; left: 0; right: 0; margin: 2px 0 0; padding: 0; list-style: none; background: #fff; border: 1px solid var(--bord); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+#recherche-resultats li button { width: 100%; text-align: left; border: 0; border-radius: 0; }
+#filtre-categorie { min-height: 36px; border: 1px solid var(--bord); border-radius: 8px; padding: 0 8px; background: #fff; }
+
+#principal { position: relative; flex: 1; min-height: 0; display: flex; }
+#carte { flex: 1; min-height: 300px; }
+#panneau { position: relative; width: 420px; max-width: 100%; overflow-y: auto; border-left: 1px solid var(--bord); padding: 16px 18px 32px; background: #fff; }
+#fermer-panneau { position: sticky; top: 0; float: right; width: 36px; padding: 0; font-size: 22px; line-height: 1; }
+#legende { position: absolute; z-index: 500; left: 10px; bottom: 22px; display: flex; flex-wrap: wrap; gap: 4px 12px; max-width: calc(100% - 20px); padding: 6px 10px; background: rgba(255,255,255,.92); border-radius: 8px; font-size: 12.5px; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+#pied { padding: 6px 16px; border-top: 1px solid var(--bord); color: var(--doux); font-size: 12px; }
+
+/* Les repères : un carré pour un lieu, un losange pour un besoin, un rond
+   pour un service ambulant. La forme dit le sens sans la couleur. */
+.pastille { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+.pastille.emplacement { background: var(--emplacement); border-radius: 2px; }
+.pastille.besoin { background: var(--besoin); transform: rotate(45deg) scale(.85); }
+.pastille.demande { background: var(--demande); border-radius: 50%; }
+.repere { background: none; border: 0; }
+.repere .pastille { width: 18px; height: 18px; }
+
+h2 { font-size: 19px; margin: 0 0 4px; }
+h3 { font-size: 15px; margin: 18px 0 6px; }
+.sous-titre { color: var(--doux); margin: 0 0 10px; }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #e5e7eb; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.attente { background: var(--alerte-fond); color: var(--alerte-texte); }
+.avertissement { margin: 12px 0; padding: 8px 10px; border-left: 4px solid #d97706; background: var(--alerte-fond); color: var(--alerte-texte); font-size: 13.5px; }
+.info { margin: 12px 0; padding: 8px 10px; border-left: 4px solid var(--accent); background: #eff6ff; font-size: 13.5px; }
+.erreur { color: #b91c1c; font-weight: 600; }
+dl.faits { display: grid; grid-template-columns: minmax(7em, 38%) 1fr; gap: 4px 12px; margin: 8px 0; }
+dl.faits dt { color: var(--doux); }
+dl.faits dd { margin: 0; }
+.inconnu { color: var(--doux); font-style: italic; }
+
+form.formulaire { display: grid; gap: 10px; }
+form.formulaire label { display: grid; gap: 3px; font-weight: 600; font-size: 14px; }
+form.formulaire label.case { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+form.formulaire input:not([type=checkbox]):not([type=radio]), form.formulaire select, form.formulaire textarea { min-height: 36px; padding: 4px 8px; border: 1px solid var(--bord); border-radius: 8px; font-weight: 400; }
+fieldset { border: 1px solid var(--bord); border-radius: 8px; padding: 8px 10px; margin: 0; }
+legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+.cases { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.aide { color: var(--doux); font-size: 13px; font-weight: 400; }
+.onglets { display: flex; gap: 6px; margin: 0 0 12px; }
+.onglets button[aria-selected="true"] { background: var(--texte); color: #fff; }
+
+table.tableau { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.tableau th, table.tableau td { border-bottom: 1px solid #eee; padding: 5px 4px; text-align: left; vertical-align: top; }
+.carte-liste { border: 1px solid var(--bord); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+
+@media (max-width: 760px) {
+  #principal { flex-direction: column; }
+  /* Au-dessus des contrôles de Leaflet (z-index 1000), qui sinon
+     recouvrent le bas du panneau. */
+  #panneau { position: absolute; z-index: 1100; left: 0; right: 0; bottom: 0; width: auto; max-height: 72%; border-left: 0; border-top: 1px solid var(--bord); border-radius: 14px 14px 0 0; box-shadow: 0 -6px 20px rgba(0,0,0,.18); }
+  #panneau:not([hidden]) ~ #legende { display: none; }
+  #entete { padding: 8px 12px; }
+  #sens { order: 3; width: 100%; }
+  #sens button { flex: 1; font-size: 13px; padding: 0 6px; }
+  #outils { padding: 6px 12px; }
+}

@@ -1,0 +1,37 @@
+#!/bin/sh
+# Refuse la poussée si la suite est rouge (repris de WAY2NAV).
+#
+# Le workflow GitHub ne tourne qu'à l'entrée de « main » (voir
+# .github/workflows/tests.yml) : le travail sur une branche et sur
+# « develop » est relu ici, avant que quoi que ce soit ne parte.
+#
+# Pour l'activer, une fois par clone :
+#
+#     git config core.hooksPath githooks
+#
+# Pour passer outre sciemment : « git push --no-verify ».
+
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+# Rien que de la documentation : la suite n'a rien à en dire.
+AMONT=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo "")
+if [ -n "$AMONT" ]; then
+    MODIFIES=$(git diff --name-only "$AMONT"...HEAD || echo "")
+    if [ -n "$MODIFIES" ] && [ -z "$(echo "$MODIFIES" | grep -v '\.md$' || true)" ]; then
+        echo "pre-push : que de la documentation, la suite est passée."
+        exit 0
+    fi
+fi
+
+if python3 -c "import xdist" 2>/dev/null; then REPARTITION="-n auto"; else REPARTITION=""; fi
+
+echo "pre-push : la suite complète, avant de pousser…"
+if python3 -m pytest -q $REPARTITION; then
+    echo "pre-push : vert. La poussée part."
+    exit 0
+fi
+echo ""
+echo "pre-push : la suite est ROUGE — rien n'est poussé."
+echo "           « git push --no-verify » pour passer outre sciemment."
+exit 1
