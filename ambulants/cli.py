@@ -75,3 +75,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     finally:
         store.close()
     return 2
+
+
+# « python -m ambulants.cli » : la forme qu'emploie le démarrage du NAS, parce
+# que « ambulants.cli » est un motif que « ps » retrouve sans le confondre avec
+# le dossier d'installation.
+if __name__ == "__main__":
+    raise SystemExit(main())

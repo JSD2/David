@@ -28,8 +28,12 @@ La base est `./ambulants.sqlite3`, ou le fichier désigné par `AMBULANTS_DB`
 | --- | --- |
 | `AMBULANTS_ENV` | `production` seul rend le site indexable. `test` (et toute autre valeur) : bandeau « environnement de test » et `noindex`. |
 | `AMBULANTS_DB` | Fichier de la base. |
-| `AMBULANTS_DERRIERE_PROXY` | `1` derrière le mandataire de l'hébergeur : le limiteur de connexion lit alors `X-Forwarded-For`. |
+| `AMBULANTS_DERRIERE_PROXY` | `1` derrière un proxy inversé (Coolify, DSM) : le limiteur de connexion lit `X-Forwarded-For`, seulement si la connexion vient d'une adresse locale ou privée. |
 | `PORT` | Port d'écoute (8000 par défaut). |
+
+## Sur le NAS Synology
+
+À la place de WAY2NAV : [SYNOLOGY.md](SYNOLOGY.md).
 
 ## Essais
 
@@ -55,6 +59,7 @@ ambulants/
   migrations.py   paliers de schéma SQLite
   store.py        connexion partagée verrouillée
   web/            la page : carte Leaflet, fonds IGN, service worker
+synology/         installeur du NAS (sans Docker)
 tests/            suite pytest (+ tests/js pour Node)
 ```
 

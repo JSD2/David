@@ -158,3 +158,19 @@ def test_inconnu_et_methode(client):
     assert client.get("/api/rien")[0] == 404
     assert client.get("/api/demandes")[0] == 405
     assert client.get("/static/../store.py")[0] == 404
+
+
+def test_x_forwarded_for_cru_seulement_d_un_proxy_local(client, store, monkeypatch):
+    """Derrière le proxy de DSM, chaque visiteur a son propre quota."""
+    from ambulants.api import _pair_de_confiance
+    assert _pair_de_confiance("127.0.0.1") and _pair_de_confiance("192.168.1.10")
+    assert not _pair_de_confiance("203.0.114.5") and not _pair_de_confiance("")
+
+    monkeypatch.setenv("AMBULANTS_DERRIERE_PROXY", "1")
+    c = creer_compte(store, "Paul")
+    faux = {"email": c.email, "mot_de_passe": "faux-faux-faux"}
+    for _ in range(10):
+        client.post("/api/session", faux, entetes={"X-Forwarded-For": "198.51.100.7"})
+    assert client.post("/api/session", faux, entetes={"X-Forwarded-For": "198.51.100.7"})[0] == 429
+    # Un autre visiteur, derrière le même proxy, n'est pas bloqué.
+    assert client.post("/api/session", faux, entetes={"X-Forwarded-For": "198.51.100.8"})[0] == 400

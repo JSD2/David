@@ -25,6 +25,7 @@ from __future__ import annotations
 import gzip
 import hashlib
 import html
+import ipaddress
 import json
 import os
 import re
@@ -170,6 +171,14 @@ class Application:
                 etag = '"' + hashlib.sha256(corps).hexdigest()[:20] + '"'
                 self._carte = (empreinte, corps, gzip.compress(corps, 9), etag)
             return self._carte
+
+
+def _pair_de_confiance(adresse: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(adresse)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_link_local
 
 
 def _bandeau() -> str:
@@ -340,14 +349,23 @@ class Gestionnaire(BaseHTTPRequestHandler):
                 f"Max-Age={max_age}{securise}")
 
     def _adresse(self) -> str:
-        """L'adresse du client, pour le limiteur seulement. Derrière le
-        mandataire de l'hébergeur (Coolify), c'est le dernier saut
-        d'`X-Forwarded-For` qui compte — et seulement si on l'a dit."""
-        if os.environ.get("AMBULANTS_DERRIERE_PROXY") == "1":
+        """L'adresse du client, pour le limiteur seulement.
+
+        Derrière un proxy inversé (Coolify, ou celui de DSM sur le NAS),
+        c'est le dernier saut d'`X-Forwarded-For` qui compte, celui que le
+        proxy a posé. L'en-tête n'est cru que si on l'a dit
+        (`AMBULANTS_DERRIERE_PROXY=1`) ET si la connexion vient d'une
+        adresse locale ou privée, là où vit le proxy : sur le NAS, le site
+        écoute aussi sur le réseau, et un visiteur qui le joindrait
+        directement pourrait sinon écrire l'en-tête lui-même pour échapper
+        au limiteur (repris de WAY2NAV, `pair_de_confiance`).
+        """
+        pair = self.client_address[0]
+        if os.environ.get("AMBULANTS_DERRIERE_PROXY") == "1" and _pair_de_confiance(pair):
             transmis = (self.headers.get("X-Forwarded-For") or "").split(",")[-1].strip()
             if transmis:
                 return transmis
-        return self.client_address[0]
+        return pair
 
     # -- la page et ses fichiers -------------------------------------------
 

@@ -3,7 +3,7 @@
 Document de reprise, à donner en début de nouvelle conversation. Il dit l'état
 réel du projet, les décisions prises et ce qui reste. Rien n'y est supposé.
 
-*Dernière mise à jour : 19 octobre 2026.*
+*Dernière mise à jour : 20 octobre 2026.*
 
 ## Objet
 
@@ -32,9 +32,51 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
       `ambulants` sont provisoires ; l'écran l'affiche).
 - [ ] Quel côté remplir en premier ? Une carte vide décourage les deux.
 - [ ] Modèle économique, parmi les trois options.
-- [ ] Hébergement : Coolify comme WAY2NAV, ou autre.
+- [x] Hébergement : le NAS Synology, à la place de WAY2NAV (décision du
+      20 octobre). Voir « Livraison 2 » et `SYNOLOGY.md`.
 - [ ] Création des branches `develop` (test) et `main` (production) — voir
       « Livraison 1 ».
+
+---
+
+## Livraison 2 — l'installation sur le NAS, à la place de WAY2NAV (20 octobre 2026)
+
+Décision du porteur du projet : le site **remplace** WAY2NAV sur le NAS
+Synology (DS213j, ARM 32 bits, pas de Docker). WAY2NAV reste en ligne sur
+son VPS ; le NAS, qui en était le retour arrière, ne l'est plus.
+
+### Ce qui est fait
+
+- `synology/installer.sh`, repris de celui de WAY2NAV et de ses pièges payés
+  (`ps` tronqué par busybox, `set -e` et grep bredouille, port retenu, sortie
+  tamponnée). Il essaie scrypt **avant** de toucher à WAY2NAV ; arrête
+  WAY2NAV ; renomme son `demarrer.sh` en `demarrer.sh.arrete` sans rien
+  effacer ; installe dans `/volume1/ambulants` ; démarre sur le port 8000 en
+  environnement `test`.
+- `SYNOLOGY.md` : le pas à pas dans DSM (les deux tâches de WAY2NAV à
+  remplacer, l'administrateur, le proxy, le retour à WAY2NAV).
+- `python -m ambulants.cli` démarre enfin quelque chose : `cli.py` n'avait
+  pas de point d'entrée, défaut trouvé par l'essai de l'installeur.
+- Le limiteur de connexion ne croit `X-Forwarded-For` que si la connexion
+  vient d'une adresse locale ou privée (le proxy de DSM), comme WAY2NAV :
+  sur le NAS, le site écoute aussi sur le réseau, et un visiteur direct
+  aurait pu écrire l'en-tête pour échapper au quota.
+
+### Vérifié, et comment
+
+- Suite verte (80 essais) sous Python 3.13 et 3.8.20.
+- `tests/test_installeur.py` joue l'installeur pour de vrai sur Linux : un
+  faux WAY2NAV qui tourne est arrêté, son démarrage mis de côté, sa base
+  intacte ; le site répond sur le port, `robots.txt` fermé ; une relance
+  arrête l'instance précédente et garde la base.
+
+### Pas vérifié
+
+- **Rien n'a tourné sur le NAS lui-même** : ni busybox, ni le Python de DSM,
+  ni le temps de scrypt sur cet ARM (l'installeur l'affiche).
+- Si le proxy de DSM transmet `X-Forwarded-For`. Sinon, tous les visiteurs
+  partagent un même quota de connexion.
+- L'installeur télécharge la branche `develop`, **qui n'existe pas encore**.
 
 ---
 
