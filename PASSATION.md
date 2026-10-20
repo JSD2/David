@@ -34,8 +34,7 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 - [ ] Modèle économique, parmi les trois options.
 - [x] Hébergement : le NAS Synology, à la place de WAY2NAV (décision du
       20 octobre). Voir « Livraison 2 » et `SYNOLOGY.md`.
-- [ ] Création des branches `develop` (test) et `main` (production) — voir
-      « Livraison 1 ».
+- [ ] Création de `main` (production). `develop` existe depuis le 20 octobre.
 
 ---
 
@@ -76,7 +75,9 @@ son VPS ; le NAS, qui en était le retour arrière, ne l'est plus.
   ni le temps de scrypt sur cet ARM (l'installeur l'affiche).
 - Si le proxy de DSM transmet `X-Forwarded-For`. Sinon, tous les visiteurs
   partagent un même quota de connexion.
-- L'installeur télécharge la branche `develop`, **qui n'existe pas encore**.
+- `develop` a été créée le 20 octobre (accord du porteur du projet), au
+  même commit que la branche de travail ; l'installeur et l'archive se
+  téléchargent depuis GitHub (HTTP 200, vérifié d'ici). `main` reste à créer.
 
 ---
 
