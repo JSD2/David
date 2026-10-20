@@ -69,10 +69,20 @@ son VPS ; le NAS, qui en était le retour arrière, ne l'est plus.
   intacte ; le site répond sur le port, `robots.txt` fermé ; une relance
   arrête l'instance précédente et garde la base.
 
+### Sur le NAS, le 20 octobre (compte rendu de l'installeur, transmis par le porteur du projet)
+
+- Python retenu : `/usr/bin/python3`, **3.8.12**.
+- Un hachage scrypt : **0,95 s**. Une connexion ou une inscription coûte
+  donc environ une seconde de calcul sur ce processeur mono-cœur, et deux
+  tentatives simultanées s'attendent l'une l'autre.
+- WAY2NAV arrêté (un processus), son démarrage mis de côté, ses données
+  conservées. Site démarré en 8 s, à `http://192.168.1.166:8000`.
+
 ### Pas vérifié
 
-- **Rien n'a tourné sur le NAS lui-même** : ni busybox, ni le Python de DSM,
-  ni le temps de scrypt sur cet ARM (l'installeur l'affiche).
+- Le site vu depuis un navigateur sur le NAS, la tâche de démarrage après
+  un redémarrage, et le premier administrateur : à faire par le porteur du
+  projet.
 - Si le proxy de DSM transmet `X-Forwarded-For`. Sinon, tous les visiteurs
   partagent un même quota de connexion.
 - `develop` a été créée le 20 octobre (accord du porteur du projet), au
