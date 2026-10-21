@@ -60,3 +60,21 @@ Préparation : une base de test, un compte administrateur posé par
 | 5.4 | Administrateur : Console → Tableau des droits, « Publier une demande » à « Abonné » | Un commerçant ordinaire ne peut plus publier ; le modérateur le peut |
 | 5.5 | Décocher « Créer un compte » | L'onglet « Créer un compte » disparaît ; l'API refuse (fonction fermée) |
 | 5.6 | Essayer de régler « Le tableau des droits » | Impossible : ligne verrouillée |
+
+## 6. Recherches des mairies, zones des services, notifications
+
+| # | Geste | Attendu |
+| --- | --- | --- |
+| 6.1 | Mairie vérifiée : « Publier » → recherche « Alimentaire », créneau mardi 11:00–14:00, commune placée par la recherche d'adresse | Fiche publiée ; message « vous serez prévenu… » (ou le nombre de services déjà là) |
+| 6.2 | Commerçant : « Publier » → position, puis « + Un cercle » de 15 km | Cercle en pointillé pendant le réglage ; le nombre de communes s'affiche ; « Ajouter ce cercle » l'ajoute à la liste |
+| 6.3 | « + Une ville » → « Bourganeuf » | La ville s'ajoute : 1 commune |
+| 6.4 | « + Dessiner une zone » → tracer un contour sans lever le doigt | La carte ne bouge pas pendant le tracé ; la zone s'ajoute avec son nombre de communes |
+| 6.5 | Sur téléphone, même tracé | Le panneau se replie pendant le tracé ; le doigt trace sans faire défiler la carte |
+| 6.6 | Disponibilité mardi 10:00–15:00, publier | « Mon compte » s'ouvre : « Demande publiée : 1 mairie prévenue » |
+| 6.7 | Dans « Mes demandes », chaque zone | Nombre de villes, « Voir la zone » la cadre sur la carte, la liste des villes s'ouvre ; la ville de la mairie prévenue est en vert avec son lien |
+| 6.8 | Mairie : recharger la page | « Notifications (1) » ; la notification dit le service, l'activité et les créneaux en commun |
+| 6.9 | « Voir le service et sa zone » | La fiche du service ; ses zones dessinées sur la carte |
+| 6.10 | Une mairie de la zone qui n'a rien publié | Aucune notification |
+| 6.11 | Créneaux sans jour commun (mairie lundi, service mardi) | Pas de notification |
+| 6.12 | Fiche publique d'un service, vue sans compte | Les zones sont visibles ; ni la liste des villes ni les mairies prévenues |
+

@@ -66,7 +66,8 @@ def test_position_obligatoire_et_valide(store):
 
 def test_departements_et_jours_nettoyes(store):
     c = creer_compte(store, "Paul")
-    f = store.annonces.publier_demande(c, dict(DEMANDE, departements=["23", "2a", "99", "23"],
+    # Sans plages horaires, les jours donnés seuls sont gardés.
+    f = store.annonces.publier_demande(c, dict(DEMANDE, plages=[], departements=["23", "2a", "99", "23"],
                                                jours=["jeudi", "lundi", "férié"]))
     assert f["departements"] == ["23", "2A"]
     assert f["jours"] == ["lundi", "jeudi"]

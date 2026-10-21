@@ -82,6 +82,12 @@
     return cle;
   }
 
+  /** « mardi 08:00–13:00, jeudi 18:00–22:00 » ; rien donné : non renseigné. */
+  function textePlages(plages) {
+    if (!plages || !plages.length) return el('span', { class: 'inconnu' }, 'non renseignés');
+    return plages.map(p => `${p.jour} ${p.debut}–${p.fin}`).join(', ');
+  }
+
   function jours(liste) {
     return liste && liste.length ? liste.join(', ') : el('span', { class: 'inconnu' }, 'non renseignés');
   }
@@ -109,6 +115,8 @@
   }));
 
   const calque = L.layerGroup().addTo(carte);
+  // Les zones d'action montrées (fiche, historique, saisie).
+  const calqueZones = L.layerGroup().addTo(carte);
   let cercle = null;
 
   function classeDe(a) {
@@ -207,6 +215,7 @@
   const contenu = document.getElementById('contenu-panneau');
   function ouvrir(...enfants) {
     etat.placement = null;
+    calqueZones.clearLayers();
     if (cercle) { carte.removeLayer(cercle); cercle = null; }
     // replaceChildren écrirait « null » en toutes lettres pour un bloc absent.
     contenu.replaceChildren(...enfants.flat().filter(x => x !== null && x !== undefined && x !== false));
@@ -216,6 +225,7 @@
   }
   function fermer() {
     etat.placement = null;
+    calqueZones.clearLayers();
     panneau.hidden = true;
     carte.invalidateSize();
   }
@@ -229,7 +239,7 @@
   // La fiche
   // ------------------------------------------------------------------
 
-  async function ouvrirFiche(id) {
+  async function ouvrirFiche(id, bandeau) {
     let f;
     try { f = await api(`/api/annonces/${id}`); } catch (err) {
       ouvrir(el('p', { class: 'erreur' }, err.message)); return;
@@ -238,17 +248,21 @@
     const badge = f.sens === 'emplacement'
       ? (auteur.verifie ? el('span', { class: 'badge ok' }, 'Accueillant vérifié') : null)
       : (auteur.entreprise_verifiee ? el('span', { class: 'badge ok' }, 'Entreprise vérifiée') : null);
-    const titreSens = f.sens === 'demande' ? 'Service ambulant qui cherche un emplacement'
-      : (f.genre === 'besoin' ? 'Besoin d’un service (sans lieu fixé)' : 'Emplacement proposé');
+    const titreSens = f.sens === 'demande' ? 'Service ambulant'
+      : (f.genre === 'besoin' ? 'Recherche d’un service (sans lieu fixé)' : 'Recherche d’un service, emplacement proposé');
 
     const faits = el('dl', { class: 'faits' });
     const fait = (dt, dd) => faits.append(el('dt', {}, dt), el('dd', {}, dd));
     fait('Commune', ouInconnu(f.commune));
-    fait('Jours', jours(f.jours));
+    // Les annonces d'avant les plages horaires n'ont que des jours.
+    if (!f.plages.length && f.jours.length) fait('Jours', jours(f.jours));
     if (f.sens === 'demande') {
       fait('Activité', `${libelleActivite(f.categorie)} — ${libelleActivite(f.activite)}`);
-      fait('Zone', f.rayon_km ? `${f.rayon_km} km autour du point` : ouInconnu(null));
-      fait('Départements', f.departements.length ? f.departements.join(', ') : ouInconnu(null));
+      fait('Disponibilités', textePlages(f.plages));
+      fait('Zones d’action', f.zones.length
+        ? el('span', {}, f.zones.map(z => `${z.libelle} (${z.nombre_communes} commune${z.nombre_communes > 1 ? 's' : ''})`).join(', '), ' ',
+          el('button', { type: 'button', onclick: () => afficherZones(f.zones) }, 'Voir sur la carte'))
+        : ouInconnu(f.rayon_km, 'km autour du point'));
       fait('Électricité', triEtat(f.besoin_electricite));
       fait('Eau', triEtat(f.besoin_eau));
       fait('Surface', ouInconnu(f.surface_m2, 'm²'));
@@ -259,16 +273,18 @@
       });
     } else {
       if (f.genre === 'emplacement') fait('Adresse', ouInconnu(f.adresse));
-      fait('Créneaux', ouInconnu(f.creneaux));
+      fait('Créneaux souhaités', textePlages(f.plages));
+      if (f.creneaux) fait('Précisions horaires', f.creneaux);
       fait('Électricité', triEtat(f.electricite));
       fait('Eau', triEtat(f.eau));
       fait('Redevance', ouInconnu(f.redevance));
-      fait('Activités souhaitées', f.activites_souhaitees.length ? f.activites_souhaitees.map(libelleActivite).join(', ') : 'toutes');
-      if (f.activites_exclues.length) fait('Activités exclues', f.activites_exclues.map(libelleActivite).join(', '));
+      fait('Services recherchés', f.activites_souhaitees.length ? f.activites_souhaitees.map(libelleActivite).join(', ') : 'tous');
+      if (f.activites_exclues.length) fait('Services exclus', f.activites_exclues.map(libelleActivite).join(', '));
       if (f.conditions) fait('Conditions', f.conditions);
     }
 
     const blocs = [
+      bandeau ? el('p', { class: 'info', role: 'status' }, bandeau) : null,
       el('h2', {}, f.titre),
       el('p', { class: 'sous-titre' }, titreSens, ' · ', auteur.organisation || auteur.pseudo || '', ' ', badge),
       f.etat !== 'publie' ? el('p', { class: 'avertissement' }, f.etat === 'masque'
@@ -287,7 +303,8 @@
     }
     if (permis('mod_annonces')) blocs.push(blocModeration(f));
     ouvrir(...blocs);
-    carte.panTo([f.lat, f.lon]);
+    if (f.sens === 'demande' && f.zones.length) afficherZones(f.zones);
+    else carte.panTo([f.lat, f.lon]);
   }
 
   function blocModeration(f) {
@@ -326,6 +343,7 @@
     document.getElementById('bouton-publier').hidden = !(permis('publier_emplacement') || permis('publier_demande')
       || (s.compte && s.compte.type_compte === 'accueillant'));
     document.getElementById('bouton-console').hidden = !(permis('mod_verifier_accueillants') || permis('mod_annonces') || permis('adm_droits'));
+    lireNotifications();
     // Une ligne « écran » fermée retire son élément.
     document.querySelectorAll('[data-droit]').forEach(n => {
       n.hidden = !permis(n.dataset.droit);
@@ -415,9 +433,13 @@
     ouvrir(el('h2', {}, 'Mon compte'), onglets, f);
   }
 
-  async function ouvrirMonCompte() {
+  async function ouvrirMonCompte(bandeau) {
     let moi;
-    try { moi = await api('/api/moi'); } catch (err) { ouvrir(el('p', { class: 'erreur' }, err.message)); return; }
+    let historique = null;
+    try {
+      moi = await api('/api/moi');
+      if (permis('historique_demandes')) historique = (await api('/api/moi/historique')).demandes;
+    } catch (err) { ouvrir(el('p', { class: 'erreur' }, err.message)); return; }
     const c = moi.compte;
     let statut = null;
     if (c.type_compte === 'accueillant') {
@@ -425,7 +447,7 @@
         : c.verification === 'refuse' ? el('span', { class: 'badge' }, `Vérification refusée : ${c.verification_motif || ''}`)
           : el('span', { class: 'badge attente' }, 'En attente de vérification');
     }
-    const annonces = moi.annonces.length ? moi.annonces.map(a => el('div', { class: 'carte-liste' },
+    const annonces = historique ? blocHistorique(historique) : moi.annonces.length ? moi.annonces.map(a => el('div', { class: 'carte-liste' },
       el('strong', {}, a.titre), ' ', el('span', { class: 'badge' }, { publie: 'publiée', retire: 'retirée', masque: 'masquée' }[a.etat] || a.etat),
       el('div', {}, el('button', { type: 'button', onclick: () => ouvrirFiche(a.id) }, 'Voir la fiche'))))
       : [el('p', { class: 'aide' }, 'Aucune annonce pour l’instant.')];
@@ -433,13 +455,14 @@
     const mdp = el('input', { type: 'password', autocomplete: 'current-password' });
     const message = el('p', { class: 'erreur' });
     ouvrir(
+      bandeau ? el('p', { class: 'info', role: 'status' }, bandeau) : null,
       el('h2', {}, c.pseudo),
       el('p', { class: 'sous-titre' }, c.type_compte === 'accueillant' ? 'Accueillant' : 'Service ambulant',
         c.organisation ? ` · ${c.organisation}` : '', ' ', statut),
       el('dl', { class: 'faits' }, el('dt', {}, 'Adresse'), el('dd', {}, c.email),
         el('dt', {}, 'Rôle'), el('dd', {}, c.role),
         c.type_compte === 'commercant' ? [el('dt', {}, 'SIRET'), el('dd', {}, c.siret ? `${c.siret} (déclaré)` : ouInconnu(null))] : null),
-      el('h3', {}, 'Mes annonces'), ...annonces,
+      el('h3', {}, historique ? 'Mes demandes' : 'Mes annonces'), ...annonces,
       el('p', {}, el('button', { type: 'button', onclick: async () => {
         await api('/api/session/fin', {}); appliquerSession(await api('/api/session')); fermer();
       } }, 'Se déconnecter')),
@@ -451,6 +474,66 @@
             try { await api('/api/moi/effacer', { mot_de_passe: mdp.value }); appliquerSession(await api('/api/session')); await rechargerCarte(); fermer(); } catch (err) { message.textContent = err.message; }
           } }, 'Effacer'))));
   }
+
+  /** L'historique d'un commerçant : chaque demande, chaque zone, ses
+   *  villes, et les mairies prévenues mises en évidence. */
+  function blocHistorique(demandes) {
+    if (!demandes.length) return [el('p', { class: 'aide' }, 'Aucune demande pour l’instant.')];
+    return demandes.map(d => el('div', { class: 'carte-liste' },
+      el('strong', {}, d.titre), ' ',
+      el('span', { class: 'badge' }, { publie: 'publiée', retire: 'retirée', masque: 'masquée' }[d.etat] || d.etat),
+      el('div', { class: 'aide' }, `${libelleActivite(d.activite)} · publiée le ${d.date_creation.slice(0, 10)} · `,
+        el('strong', {}, `${d.nombre_mairies_prevenues} mairie${d.nombre_mairies_prevenues > 1 ? 's' : ''} prévenue${d.nombre_mairies_prevenues > 1 ? 's' : ''}`)),
+      el('div', { class: 'aide' }, 'Disponibilités : ', textePlages(d.plages)),
+      ...d.zones.map(z => el('div', { class: 'zone-historique' },
+        el('div', { class: 'cases' }, el('span', {}, el('strong', {}, z.libelle), ` — ${z.nombre_communes} commune${z.nombre_communes > 1 ? 's' : ''}`),
+          el('button', { type: 'button', onclick: () => afficherZones([z]) }, 'Voir la zone')),
+        el('details', { open: z.communes.some(c => c.prevenues.length) && z.communes.length <= 30 },
+          el('summary', {}, z.genre === 'ville' ? 'La ville' : `Les ${z.nombre_communes} villes`),
+          el('ul', { class: 'villes' }, ...z.communes.map(c => el('li', { class: c.prevenues.length ? 'prevenue' : '' },
+            `${c.nom} (${c.departement})`,
+            ...c.prevenues.map(p => el('span', {}, ' ', el('button', { type: 'button', class: 'lien', onclick: () => ouvrirFiche(p.emplacement_id) },
+              `Mairie prévenue : ${p.organisation || p.titre}`))))))))),
+      el('div', { class: 'cases' },
+        el('button', { type: 'button', onclick: () => afficherZones(d.zones) }, 'Voir toutes les zones'),
+        el('button', { type: 'button', onclick: () => ouvrirFiche(d.id) }, 'Voir la fiche'))));
+  }
+
+  // ------------------------------------------------------------------
+  // Notifications : la cloche
+  // ------------------------------------------------------------------
+
+  const boutonNotif = document.getElementById('bouton-notifications');
+  async function lireNotifications() {
+    if (!permis('notifications')) { boutonNotif.hidden = true; return null; }
+    try {
+      const n = await api('/api/notifications');
+      boutonNotif.hidden = false;
+      boutonNotif.textContent = n.non_lues ? `Notifications (${n.non_lues})` : 'Notifications';
+      boutonNotif.classList.toggle('a-lire', n.non_lues > 0);
+      return n;
+    } catch (_) { return null; }
+  }
+  boutonNotif.addEventListener('click', async () => {
+    const n = await lireNotifications();
+    if (!n) return;
+    ouvrir(el('h2', {}, 'Notifications'),
+      n.notifications.length ? null : el('p', { class: 'aide' }, 'Rien pour l’instant. Vous serez prévenu ici quand un service ambulant correspondra à l’une de vos recherches.'),
+      ...n.notifications.map(x => el('div', { class: 'carte-liste' + (x.lue ? '' : ' non-lue') },
+        el('div', { class: 'aide' }, x.date.slice(0, 10)),
+        el('strong', {}, x.service || 'Un service'), ` — ${libelleActivite(x.activite || '')}`,
+        el('p', {}, `correspond à votre recherche « ${x.titre_recherche || ''} ».`),
+        x.creneaux_communs.length ? el('p', { class: 'aide' }, 'Créneaux en commun : ', textePlages(x.creneaux_communs)) : null,
+        x.demande_publiee
+          ? el('button', { type: 'button', onclick: () => ouvrirFiche(x.demande_id) }, 'Voir le service et sa zone')
+          : el('p', { class: 'aide' }, 'Ce service a retiré son annonce.'))));
+    if (n.non_lues) {
+      try { await api('/api/notifications/lues', {}); } catch (_) { /* compteur inchangé */ }
+      lireNotifications();
+    }
+  });
+  // Une mairie qui laisse la page ouverte voit arriver les nouvelles.
+  setInterval(() => { if (etat.compte && !document.hidden) lireNotifications(); }, 120000);
 
   // ------------------------------------------------------------------
   // Publier
@@ -467,13 +550,6 @@
   }
   function valeurTriEtat(s) { return s.value === 'oui' ? true : s.value === 'non' ? false : null; }
 
-  function casesJours() {
-    const cases = D.jours.map(j => el('input', { type: 'checkbox', value: j }));
-    const bloc = el('fieldset', {}, el('legend', {}, 'Jours'),
-      el('div', { class: 'cases' }, ...D.jours.map((j, i) => el('label', { class: 'case' }, cases[i], j))));
-    return { bloc, valeur: () => cases.filter(c => c.checked).map(c => c.value) };
-  }
-
   function casesActivites(legende) {
     const cases = CATEGORIES.map(c => el('input', { type: 'checkbox', value: c.cle }));
     const bloc = el('fieldset', {}, el('legend', {}, legende),
@@ -481,8 +557,41 @@
     return { bloc, valeur: () => cases.filter(c => c.checked).map(c => c.value) };
   }
 
-  /** Le point de l'annonce : un clic sur la carte, ou une adresse trouvée. */
-  function choixPosition(rayonInput) {
+  /** Jours ET horaires : une ligne par plage (jour, de, à). La mairie y
+   *  dit les créneaux qu'elle souhaite, le commerçant ceux où il est libre.
+   *  Aucune ligne : non renseigné — ce n'est pas « jamais ». */
+  function editeurPlages(legende, aide) {
+    const lignes = el('div', { class: 'plages' });
+    const rangs = [];
+    function ajouter(jour, debut, fin) {
+      const j = el('select', {}, ...D.jours.map(x => el('option', { value: x, selected: x === jour }, x)));
+      const d = el('input', { type: 'time', value: debut || '08:00', step: '900', 'aria-label': 'De' });
+      const f = el('input', { type: 'time', value: fin || '12:00', step: '900', 'aria-label': 'À' });
+      const rang = { j, d, f };
+      const ligne = el('div', { class: 'plage' }, j, el('span', {}, 'de'), d, el('span', {}, 'à'), f,
+        el('button', { type: 'button', 'aria-label': 'Retirer cette plage', onclick: () => {
+          rangs.splice(rangs.indexOf(rang), 1); ligne.remove();
+        } }, '×'));
+      rangs.push(rang);
+      lignes.append(ligne);
+    }
+    const bloc = el('fieldset', {}, el('legend', {}, legende),
+      aide ? el('p', { class: 'aide' }, aide) : null, lignes,
+      el('div', { class: 'cases' },
+        el('button', { type: 'button', onclick: () => {
+          // La plage suivante reprend les heures de la précédente, le jour d'après :
+          // c'est le cas courant (mardi et jeudi, mêmes heures).
+          const der = rangs[rangs.length - 1];
+          const jour = der ? D.jours[(D.jours.indexOf(der.j.value) + 1) % 7] : 'lundi';
+          ajouter(jour, der && der.d.value, der && der.f.value);
+        } }, '+ Ajouter une plage')));
+    return { bloc, valeur: () => rangs.map(r => ({ jour: r.j.value, debut: r.d.value, fin: r.f.value })) };
+  }
+
+  /** Le point de l'annonce : un clic sur la carte, ou une adresse trouvée.
+   *  Un clic demande sa commune à la Base adresse nationale (géocodage
+   *  inverse) : c'est son code INSEE qui décide quelles zones la couvrent. */
+  function choixPosition(legende) {
     const pos = { lat: null, lon: null, commune: '', insee: '' };
     const marque = el('p', { class: 'aide' }, 'Aucun point placé. Cliquez sur la carte, ou cherchez une adresse.');
     let repere = null;
@@ -490,15 +599,19 @@
       pos.lat = lat; pos.lon = lon;
       if (repere) carte.removeLayer(repere);
       repere = L.circleMarker([lat, lon], { radius: 9, color: '#111', weight: 3 }).addTo(carte);
-      if (rayonInput) dessinerRayon();
       marque.textContent = `Point placé : ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     };
-    function dessinerRayon() {
-      if (cercle) { carte.removeLayer(cercle); cercle = null; }
-      const r = parseFloat(rayonInput.value);
-      if (pos.lat !== null && r > 0) cercle = L.circle([pos.lat, pos.lon], { radius: r * 1000, weight: 1 }).addTo(carte);
+    async function communeDuPoint(lat, lon) {
+      try {
+        const r = await fetch(`${GEOCODAGE.replace('/search', '/reverse')}?lon=${lon}&lat=${lat}&limit=1`);
+        const g = await r.json();
+        const p = (g.features || [])[0];
+        if (!p) return;
+        pos.commune = p.properties.city || ''; pos.insee = p.properties.citycode || '';
+        marque.textContent = `Point placé à ${pos.commune || 'une commune inconnue'} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+        if (pos.surChoix) pos.surChoix({ commune: pos.commune });
+      } catch (_) { /* le serveur prendra la commune la plus proche */ }
     }
-    if (rayonInput) rayonInput.addEventListener('input', dessinerRayon);
     const texte = el('input', { type: 'search', placeholder: 'Adresse ou commune' });
     const liste = el('div', { class: 'resultats-position' });
     const bouton = el('button', { type: 'button', onclick: async () => {
@@ -508,44 +621,47 @@
         t.forEach(r => liste.append(el('button', { type: 'button', onclick: () => {
           poser(r.lat, r.lon); pos.commune = r.commune || ''; pos.insee = r.insee || '';
           pos.adresse = r.type === 'municipality' ? '' : r.libelle;
-          carte.setView([r.lat, r.lon], 15); liste.replaceChildren();
+          carte.setView([r.lat, r.lon], 13); liste.replaceChildren();
           if (pos.surChoix) pos.surChoix(r);
         } }, r.libelle)));
       } catch (err) { liste.append(el('span', { class: 'erreur' }, err.message)); }
     } }, 'Chercher');
     // Ce panneau-ci reçoit le prochain clic sur la carte.
-    pos.activer = () => { etat.placement = (ll) => poser(ll.lat, ll.lng); };
+    pos.activer = () => {
+      etat.placement = (ll) => { poser(ll.lat, ll.lng); pos.insee = ''; pos.adresse = ''; communeDuPoint(ll.lat, ll.lng); };
+    };
     pos.nettoyer = () => { if (repere) carte.removeLayer(repere); };
-    pos.bloc = el('fieldset', {}, el('legend', {}, 'Position sur la carte'), el('div', { class: 'cases' }, texte, bouton), liste, marque);
+    pos.bloc = el('fieldset', {}, el('legend', {}, legende || 'Position sur la carte'),
+      el('div', { class: 'cases' }, texte, bouton), liste, marque);
     return pos;
   }
 
   function ouvrirPublierEmplacement() {
     if (!permis('publier_emplacement')) {
-      ouvrir(el('h2', {}, 'Publier un emplacement'),
+      ouvrir(el('h2', {}, 'Publier une recherche'),
         el('p', { class: 'info' }, etat.compte.verification === 'refuse'
           ? `La vérification de votre compte a été refusée : ${etat.compte.verification_motif || ''}`
           : 'Votre compte attend sa vérification par la modération. Vous pourrez publier dès qu’il sera vérifié.'));
       return;
     }
     const message = el('p', { class: 'erreur', role: 'alert' });
-    const genre = { valeur: 'emplacement' };
-    const titre = el('input', { type: 'text', required: true, maxlength: '120', placeholder: 'Place de la mairie, le mardi matin' });
+    const genre = { valeur: 'besoin' };
+    const titre = el('input', { type: 'text', required: true, maxlength: '120', placeholder: 'Un boulanger le mardi matin' });
     const commune = el('input', { type: 'text', required: true, maxlength: '120', value: etat.compte.commune || '' });
     const adresse = el('input', { type: 'text', maxlength: '200' });
-    const creneaux = el('input', { type: 'text', maxlength: '300', placeholder: '8 h – 13 h' });
     const elec = selectTriEtat();
     const eau = selectTriEtat();
     const redevance = el('input', { type: 'text', maxlength: '200', placeholder: 'Gratuit, 10 € par jour…' });
     const conditionsTxt = el('textarea', { rows: '2', maxlength: '2000' });
     const description = el('textarea', { rows: '3', maxlength: '3000' });
-    const j = casesJours();
-    const souhaitees = casesActivites('Activités souhaitées (aucune cochée : toutes)');
-    const exclues = casesActivites('Activités exclues');
-    const pos = choixPosition(null);
+    const plages = editeurPlages('Créneaux souhaités',
+      'Les jours et heures où vous aimeriez accueillir le service. Sans créneau, tous les services de la zone vous sont signalés.');
+    const souhaitees = casesActivites('Services recherchés (aucun coché : tous)');
+    const exclues = casesActivites('Services exclus');
+    const pos = choixPosition('Où ?');
     pos.surChoix = (r) => { if (r.commune) commune.value = r.commune; if (pos.adresse) adresse.value = pos.adresse; };
-    const choixGenre = el('fieldset', {}, el('legend', {}, 'Ce que vous publiez'),
-      el('div', { class: 'cases' }, ...[['emplacement', 'Un lieu précis à pourvoir'], ['besoin', 'Un besoin sans lieu fixé']].map(([v, l]) =>
+    const choixGenre = el('fieldset', {}, el('legend', {}, 'Le lieu'),
+      el('div', { class: 'cases' }, ...[['besoin', 'Sans lieu fixé : notre commune'], ['emplacement', 'Un emplacement précis']].map(([v, l]) =>
         el('label', { class: 'case' }, el('input', { type: 'radio', name: 'genre', value: v, checked: v === genre.valeur, onchange: () => { genre.valeur = v; } }), l))));
 
     const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
@@ -553,27 +669,215 @@
       try {
         const r = await api('/api/emplacements', {
           genre: genre.valeur, titre: titre.value, commune: commune.value, code_insee: pos.insee,
-          adresse: adresse.value, latitude: pos.lat, longitude: pos.lon, jours: j.valeur(),
-          creneaux: creneaux.value, electricite: valeurTriEtat(elec), eau: valeurTriEtat(eau),
+          adresse: adresse.value, latitude: pos.lat, longitude: pos.lon, plages: plages.valeur(),
+          electricite: valeurTriEtat(elec), eau: valeurTriEtat(eau),
           redevance: redevance.value, conditions: conditionsTxt.value, description: description.value,
           activites_souhaitees: souhaitees.valeur(), activites_exclues: exclues.valeur(),
         });
         pos.nettoyer();
         await rechargerCarte();
-        ouvrirFiche(r.id);
+        await ouvrirFiche(r.id, r.services_trouves
+          ? `Recherche publiée. ${r.services_trouves} service${r.services_trouves > 1 ? 's' : ''} déjà déclaré${r.services_trouves > 1 ? 's' : ''} dans votre secteur y correspond${r.services_trouves > 1 ? 'ent' : ''} : voir vos notifications.`
+          : 'Recherche publiée. Vous serez prévenu quand un service de votre secteur y correspondra.');
+        lireNotifications();
       } catch (err) { message.textContent = err.message; }
-    } }, choixGenre, champ('Titre', titre), pos.bloc, champ('Commune', commune), champ('Adresse (lieu précis)', adresse),
-    j.bloc, champ('Créneaux', creneaux), champ('Électricité', elec), champ('Eau', eau),
+    } }, el('p', { class: 'aide' }, 'Dites quels commerces ou services ambulants vous recherchez. Les services dont la zone d’action couvre votre commune, et dont les horaires conviennent, vous seront signalés.'),
+    champ('Titre', titre), souhaitees.bloc, plages.bloc, choixGenre, pos.bloc, champ('Commune', commune),
+    champ('Adresse (emplacement précis)', adresse), champ('Électricité', elec), champ('Eau', eau),
     champ('Redevance d’occupation', redevance, 'Laisser vide si elle n’est pas encore fixée.'),
-    souhaitees.bloc, exclues.bloc, champ('Conditions', conditionsTxt), champ('Description', description),
+    exclues.bloc, champ('Conditions', conditionsTxt), champ('Description', description),
     avertissementLegal(), message, el('button', { type: 'submit', class: 'principal' }, 'Publier'));
-    ouvrir(el('h2', {}, 'Publier un emplacement ou un besoin'), f);
+    ouvrir(el('h2', {}, 'Publier une recherche de service'), f);
     pos.activer();
+  }
+
+  // ------------------------------------------------------------------
+  // Les zones d'action d'un service : une ville, un cercle, un dessin
+  // ------------------------------------------------------------------
+
+  const STYLE_ZONE = { color: '#c2410c', weight: 2, fillOpacity: 0.12 };
+
+  /** La couche Leaflet d'une zone (reçue du serveur ou en cours de saisie). */
+  function coucheZone(z) {
+    if (z.genre === 'polygone') return L.polygon(z.polygone || z.points, STYLE_ZONE);
+    if (z.genre === 'cercle') return L.circle([z.lat, z.lon], { ...STYLE_ZONE, radius: z.rayon_km * 1000 });
+    return L.circleMarker([z.lat, z.lon], { ...STYLE_ZONE, radius: 12, fillOpacity: 0.35 })
+      .bindTooltip(z.libelle || '', { permanent: true, direction: 'top' });
+  }
+
+  /** Montre des zones sur la carte et les cadre. */
+  function afficherZones(zones) {
+    calqueZones.clearLayers();
+    const couches = zones.map(z => coucheZone(z).addTo(calqueZones));
+    if (!couches.length) return;
+    const g = L.featureGroup(couches);
+    carte.fitBounds(g.getBounds().pad(0.15), { maxZoom: 12 });
+  }
+
+  function editeurZones(pos) {
+    const zones = []; // { envoi, libelle, nombre, couche }
+    const liste = el('div');
+    const outil = el('div');
+    const rappel = el('p', { class: 'aide' }, 'Aucune zone pour l’instant.');
+
+    function redessinerListe() {
+      liste.replaceChildren(...zones.map((z, i) => el('div', { class: 'carte-liste' },
+        el('strong', {}, z.libelle), ' — ', `${z.nombre} commune${z.nombre > 1 ? 's' : ''}`,
+        el('details', {}, el('summary', {}, 'Voir les villes'),
+          el('p', { class: 'aide' }, z.communes.map(c => c.nom).join(', ') + (z.nombre > z.communes.length ? '…' : ''))),
+        el('div', { class: 'cases' },
+          el('button', { type: 'button', onclick: () => carte.fitBounds(L.featureGroup([z.couche]).getBounds().pad(0.2), { maxZoom: 12 }) }, 'Voir la zone'),
+          el('button', { type: 'button', class: 'danger', onclick: () => {
+            calqueZones.removeLayer(z.couche); zones.splice(i, 1); redessinerListe();
+          } }, 'Retirer')))));
+      rappel.hidden = zones.length > 0;
+    }
+
+    async function ajouter(envoi) {
+      const a = await api('/api/zones/apercu', { zone: envoi });
+      const vue = envoi.genre === 'ville' ? { ...envoi, libelle: a.libelle } : envoi;
+      const couche = coucheZone(vue).addTo(calqueZones);
+      zones.push({ envoi, libelle: a.libelle, nombre: a.nombre, communes: a.communes, couche });
+      redessinerListe();
+      outil.replaceChildren();
+      pos.activer();
+    }
+
+    function outilVille() {
+      const texte = el('input', { type: 'search', placeholder: 'Nom de la commune' });
+      const res = el('div', { class: 'resultats-position' });
+      const msg = el('p', { class: 'erreur' });
+      const chercher = async () => {
+        res.replaceChildren();
+        try {
+          const r = await api(`/api/communes?q=${encodeURIComponent(texte.value)}`);
+          if (!r.communes.length) res.append(el('span', { class: 'aide' }, 'Aucune commune trouvée.'));
+          r.communes.forEach(c => res.append(el('button', { type: 'button', onclick: async () => {
+            try { await ajouter({ genre: 'ville', code_insee: c.code_insee, lat: c.lat, lon: c.lon }); } catch (err) { msg.textContent = err.message; }
+          } }, `${c.nom} (${c.departement})`)));
+        } catch (err) { msg.textContent = err.message; }
+      };
+      texte.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chercher(); } });
+      outil.replaceChildren(el('div', { class: 'outil-zone' }, el('strong', {}, 'Une ville'),
+        el('div', { class: 'cases' }, texte, el('button', { type: 'button', onclick: chercher }, 'Chercher')), res, msg));
+      texte.focus();
+    }
+
+    function outilCercle() {
+      const centre = { lat: pos.lat, lon: pos.lon };
+      const rayon = el('input', { type: 'number', min: '1', max: '300', step: '1', value: '20' });
+      const nb = el('p', { class: 'aide' });
+      const msg = el('p', { class: 'erreur' });
+      let apercu = null;
+      let minuteur = null;
+      const redessiner = () => {
+        if (apercu) carte.removeLayer(apercu);
+        const r = parseFloat(rayon.value);
+        if (centre.lat === null || !(r > 0)) { nb.textContent = 'Cliquez sur la carte pour placer le centre.'; return; }
+        apercu = L.circle([centre.lat, centre.lon], { ...STYLE_ZONE, dashArray: '6 4', radius: r * 1000 }).addTo(carte);
+        // L'aperçu demande au serveur combien de communes le cercle couvre,
+        // sans le harceler à chaque chiffre tapé.
+        clearTimeout(minuteur);
+        minuteur = setTimeout(async () => {
+          try {
+            const a = await api('/api/zones/apercu', { zone: { genre: 'cercle', lat: centre.lat, lon: centre.lon, rayon_km: r } });
+            nb.textContent = `${a.nombre} commune${a.nombre > 1 ? 's' : ''} dans ce cercle.`;
+          } catch (err) { nb.textContent = err.message; }
+        }, 300);
+      };
+      rayon.addEventListener('input', redessiner);
+      etat.placement = (ll) => { centre.lat = ll.lat; centre.lon = ll.lng; redessiner(); };
+      const fin = () => { if (apercu) carte.removeLayer(apercu); outil.replaceChildren(); pos.activer(); };
+      outil.replaceChildren(el('div', { class: 'outil-zone' }, el('strong', {}, 'Un cercle'),
+        el('p', { class: 'aide' }, 'Le centre est votre position ; cliquez sur la carte pour le déplacer.'),
+        champ('Rayon (km)', rayon), nb, msg,
+        el('div', { class: 'cases' },
+          el('button', { type: 'button', class: 'principal', onclick: async () => {
+            try {
+              const envoi = { genre: 'cercle', lat: centre.lat, lon: centre.lon, rayon_km: parseFloat(rayon.value) };
+              if (apercu) carte.removeLayer(apercu);
+              await ajouter(envoi);
+            } catch (err) { msg.textContent = err.message; }
+          } }, 'Ajouter ce cercle'),
+          el('button', { type: 'button', onclick: fin }, 'Annuler'))));
+      redessiner();
+    }
+
+    /** À main levée : on appuie sur la carte et on trace sans lever le
+     *  doigt (ou la souris). Pendant le tracé, la carte ne bouge plus. */
+    function outilDessin() {
+      const msg = el('p', { class: 'erreur' });
+      const aide = el('p', { class: 'aide' }, 'Appuyez sur la carte et tracez le contour de votre zone sans lever le doigt. La carte est figée pendant le tracé.');
+      const conteneur = carte.getContainer();
+      let points = [];
+      let trace = null;
+      let enCours = false;
+      etat.placement = null;
+      carte.dragging.disable();
+      conteneur.classList.add('en-trace');
+      const latlng = (e) => carte.containerPointToLatLng(L.point(e.clientX - conteneur.getBoundingClientRect().left, e.clientY - conteneur.getBoundingClientRect().top));
+      const dernierPx = { x: 0, y: 0 };
+      const bas = (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        enCours = true; points = [];
+        if (trace) carte.removeLayer(trace);
+        trace = L.polyline([], { ...STYLE_ZONE, dashArray: '4 4' }).addTo(carte);
+        conteneur.setPointerCapture && conteneur.setPointerCapture(e.pointerId);
+        bouge(e, true);
+        e.preventDefault();
+      };
+      const bouge = (e, force) => {
+        if (!enCours) return;
+        // Un point tous les 6 pixels : assez pour suivre la main, pas au
+        // point de dépasser les 500 points qu'accepte le serveur.
+        if (!force && Math.hypot(e.clientX - dernierPx.x, e.clientY - dernierPx.y) < 6) return;
+        dernierPx.x = e.clientX; dernierPx.y = e.clientY;
+        const p = latlng(e);
+        points.push([p.lat, p.lng]);
+        trace.addLatLng(p);
+      };
+      const haut = async () => {
+        if (!enCours) return;
+        enCours = false;
+        terminer();
+        if (points.length < 3) { msg.textContent = 'Tracé trop court : recommencez.'; return; }
+        // Trop de points : on en garde un sur n, le contour reste fidèle.
+        const pas = Math.ceil(points.length / 480);
+        const garde = points.filter((_, i) => i % pas === 0).map(([a, b]) => [+a.toFixed(5), +b.toFixed(5)]);
+        if (trace) carte.removeLayer(trace);
+        try { await ajouter({ genre: 'polygone', points: garde }); } catch (err) { msg.textContent = err.message; outilDessin(); }
+      };
+      const terminer = () => {
+        conteneur.removeEventListener('pointerdown', bas);
+        conteneur.removeEventListener('pointermove', bouge);
+        conteneur.removeEventListener('pointerup', haut);
+        carte.dragging.enable();
+        conteneur.classList.remove('en-trace');
+        document.body.classList.remove('trace-actif');
+      };
+      conteneur.addEventListener('pointerdown', bas);
+      conteneur.addEventListener('pointermove', bouge);
+      conteneur.addEventListener('pointerup', haut);
+      outil.replaceChildren(el('div', { class: 'outil-zone' }, el('strong', {}, 'Dessin à main levée'), aide, msg,
+        el('button', { type: 'button', onclick: () => { terminer(); if (trace) carte.removeLayer(trace); outil.replaceChildren(); pos.activer(); } }, 'Annuler')));
+      // Sur téléphone, le panneau couvre le bas de la carte : on le replie
+      // le temps du tracé.
+      document.body.classList.add('trace-actif');
+    }
+
+    const bloc = el('fieldset', {}, el('legend', {}, 'Mes zones d’action'),
+      el('p', { class: 'aide' }, 'Où allez-vous ? Une ou plusieurs zones : une ville, un cercle autour d’un point, ou un contour dessiné sur la carte. Les mairies de ces zones qui recherchent votre activité seront prévenues. Une commune compte si son centre est dans la zone.'),
+      rappel, liste, outil,
+      el('div', { class: 'cases' },
+        el('button', { type: 'button', onclick: outilVille }, '+ Une ville'),
+        el('button', { type: 'button', onclick: outilCercle }, '+ Un cercle'),
+        el('button', { type: 'button', onclick: outilDessin }, '+ Dessiner une zone')));
+    return { bloc, valeur: () => zones.map(z => z.envoi) };
   }
 
   function ouvrirPublierDemande() {
     const message = el('p', { class: 'erreur', role: 'alert' });
-    const titre = el('input', { type: 'text', required: true, maxlength: '120', placeholder: 'Pizzas au feu de bois, cherche places en semaine' });
+    const titre = el('input', { type: 'text', required: true, maxlength: '120', placeholder: 'Pizzas au feu de bois' });
     const categorie = el('select', { required: true }, ...CATEGORIES.map(c => el('option', { value: c.cle }, c.libelle)));
     const activite = el('select', { required: true });
     const champsBloc = el('div');
@@ -589,16 +893,16 @@
     categorie.addEventListener('change', selonCategorie);
     (etat.compte.categories || []).slice(0, 1).forEach(c => { categorie.value = c; });
     selonCategorie();
-    const rayon = el('input', { type: 'number', min: '1', max: '300', step: '1' });
-    const departements = el('input', { type: 'text', placeholder: '23, 87, 19' });
     const commune = el('input', { type: 'text', maxlength: '120' });
     const elec = selectTriEtat();
     const eau = selectTriEtat();
     const surface = el('input', { type: 'number', min: '1', max: '500', step: '0.5' });
     const description = el('textarea', { rows: '3', maxlength: '3000' });
-    const j = casesJours();
-    const pos = choixPosition(rayon);
+    const plages = editeurPlages('Mes disponibilités',
+      'Les jours et heures où vous pouvez venir. Une mairie n’est prévenue que si ses créneaux recoupent les vôtres.');
+    const pos = choixPosition('Où êtes-vous installé ?');
     pos.surChoix = (r) => { if (r.commune) commune.value = r.commune; };
+    const zones = editeurZones(pos);
 
     const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
       e.preventDefault();
@@ -611,21 +915,22 @@
         const r = await api('/api/demandes', {
           titre: titre.value, categorie: categorie.value, activite: activite.value,
           latitude: pos.lat, longitude: pos.lon, commune: commune.value,
-          rayon_km: rayon.value || null,
-          departements: departements.value.split(/[\s,;]+/).filter(Boolean),
-          jours: j.valeur(), besoin_electricite: valeurTriEtat(elec), besoin_eau: valeurTriEtat(eau),
+          zones: zones.valeur(), plages: plages.valeur(),
+          besoin_electricite: valeurTriEtat(elec), besoin_eau: valeurTriEtat(eau),
           surface_m2: surface.value || null, champs_activite: champsActivite, description: description.value,
         });
         pos.nettoyer();
         await rechargerCarte();
-        ouvrirFiche(r.id);
+        const n = r.mairies_prevenues;
+        await ouvrirMonCompte(n
+          ? `Demande publiée : ${n} mairie${n > 1 ? 's' : ''} prévenue${n > 1 ? 's' : ''}.`
+          : 'Demande publiée. Aucune mairie de vos zones ne recherche votre activité pour l’instant : elles seront prévenues dès qu’elles le feront.');
       } catch (err) { message.textContent = err.message; }
     } }, champ('Titre', titre), champ('Catégorie', categorie), champ('Activité', activite), champsBloc, avert,
-    pos.bloc, champ('Commune de référence', commune), champ('Rayon (km)', rayon, 'Jusqu’où vous allez autour du point.'),
-    champ('Départements', departements, 'Facultatif, séparés par des virgules.'), j.bloc,
+    pos.bloc, champ('Commune', commune), zones.bloc, plages.bloc,
     champ('Besoin d’électricité', elec), champ('Besoin d’eau', eau), champ('Surface nécessaire (m²)', surface),
     champ('Description', description), avertissementLegal(), message, el('button', { type: 'submit', class: 'principal' }, 'Publier'));
-    ouvrir(el('h2', {}, 'Publier une demande d’emplacement'), f);
+    ouvrir(el('h2', {}, 'Proposer mes services'), f);
     pos.activer();
   }
 

@@ -143,6 +143,79 @@ MIGRATIONS: Tuple[Migration, ...] = (
         CREATE INDEX IF NOT EXISTS idx_dem_compte ON demandes(compte_id);
         """,
     ),
+    Migration(
+        version=3,
+        description="Communes, zones d'action, plages horaires, correspondances, notifications",
+        sql="""
+        -- Le référentiel officiel, versé depuis data/communes.json.gz.
+        CREATE TABLE IF NOT EXISTS communes (
+            code_insee  TEXT PRIMARY KEY,
+            nom         TEXT NOT NULL,
+            nom_norme   TEXT NOT NULL,
+            departement TEXT,
+            latitude    REAL NOT NULL,
+            longitude   REAL NOT NULL,
+            population  INTEGER                 -- NULL : non renseignée
+        );
+        CREATE INDEX IF NOT EXISTS idx_communes_pos ON communes(latitude, longitude);
+        CREATE INDEX IF NOT EXISTS idx_communes_nom ON communes(nom_norme);
+
+        -- Jours ET horaires : [{"jour": "mardi", "debut": "08:00", "fin": "13:00"}].
+        -- Côté mairie, les créneaux souhaités ; côté commerçant, ses
+        -- disponibilités. Liste vide : non renseigné.
+        ALTER TABLE emplacements ADD COLUMN plages TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE demandes ADD COLUMN plages TEXT NOT NULL DEFAULT '[]';
+        CREATE INDEX IF NOT EXISTS idx_empl_insee ON emplacements(code_insee);
+
+        -- Les zones d'action d'une demande : une ville, un cercle, ou un
+        -- dessin à main levée. Une demande en a une ou plusieurs.
+        CREATE TABLE IF NOT EXISTS zones (
+            identifiant TEXT PRIMARY KEY,
+            demande_id  TEXT NOT NULL REFERENCES demandes(identifiant) ON DELETE CASCADE,
+            rang        INTEGER NOT NULL,
+            genre       TEXT NOT NULL,          -- ville | cercle | polygone
+            code_insee  TEXT,                   -- ville
+            latitude    REAL,                   -- ville, cercle : le centre
+            longitude   REAL,
+            rayon_km    REAL,                   -- cercle
+            polygone    TEXT,                   -- polygone : [[lat, lon], …]
+            date_creation TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_zones_demande ON zones(demande_id);
+
+        -- Les communes d'une zone, calculées une fois à la publication :
+        -- c'est la liste que le commerçant retrouve dans son historique.
+        CREATE TABLE IF NOT EXISTS zone_communes (
+            zone_id     TEXT NOT NULL REFERENCES zones(identifiant) ON DELETE CASCADE,
+            code_insee  TEXT NOT NULL,
+            PRIMARY KEY (zone_id, code_insee)
+        );
+        CREATE INDEX IF NOT EXISTS idx_zc_commune ON zone_communes(code_insee);
+
+        -- Une demande qui correspond à une recherche de mairie : zone,
+        -- activité et créneaux. Enregistrée une fois ; c'est elle qui
+        -- prévient la mairie, et c'est le premier pas vers la mise en
+        -- relation (un événement que l'on pourra compter).
+        CREATE TABLE IF NOT EXISTS correspondances (
+            demande_id     TEXT NOT NULL REFERENCES demandes(identifiant) ON DELETE CASCADE,
+            emplacement_id TEXT NOT NULL REFERENCES emplacements(identifiant) ON DELETE CASCADE,
+            date           TEXT NOT NULL,
+            PRIMARY KEY (demande_id, emplacement_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_corr_empl ON correspondances(emplacement_id);
+
+        CREATE TABLE IF NOT EXISTS notifications (
+            identifiant    INTEGER PRIMARY KEY AUTOINCREMENT,
+            compte_id      TEXT NOT NULL REFERENCES comptes(identifiant) ON DELETE CASCADE,
+            genre          TEXT NOT NULL,
+            demande_id     TEXT REFERENCES demandes(identifiant) ON DELETE CASCADE,
+            emplacement_id TEXT REFERENCES emplacements(identifiant) ON DELETE CASCADE,
+            lue            INTEGER NOT NULL DEFAULT 0,
+            date           TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_notif_compte ON notifications(compte_id, lue);
+        """,
+    ),
 )
 
 DERNIERE_VERSION = MIGRATIONS[-1].version

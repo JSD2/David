@@ -26,6 +26,8 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from . import categories as cat
+from . import plages as pl
+from .zones import ZoneRefusee
 
 JOURS = ("lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche")
 GENRES = ("emplacement", "besoin")
@@ -103,6 +105,13 @@ def _nombre(valeur, minimum: float, maximum: float, nom: str) -> Optional[float]
     return n
 
 
+def _plages(donnees: dict) -> list:
+    try:
+        return pl.valider(donnees.get("plages"))
+    except pl.PlageRefusee as exc:
+        raise AnnonceRefusee(str(exc))
+
+
 def _activites(valeur) -> list:
     """Une liste de catégories ou d'activités connues, dans l'ordre reçu."""
     if not isinstance(valeur, list):
@@ -148,6 +157,16 @@ class DepotAnnonces:
         if genre not in GENRES:
             raise AnnonceRefusee("Dire s'il s'agit d'un lieu précis ou d'un besoin sans lieu fixé.")
         lat, lon = _position(donnees)
+        plages = _plages(donnees)
+        # La commune décide quelles demandes la couvrent : il faut son code
+        # INSEE. La recherche d'adresse le donne ; à défaut (point posé à la
+        # main), la commune dont le centre est le plus proche.
+        commune = self._store.communes.par_code(donnees.get("code_insee"))
+        if commune is None:
+            commune = self._store.communes.plus_proche(lat, lon)
+        nom_commune = _texte(donnees.get("commune"), 120) or (commune or {}).get("nom")
+        if not nom_commune:
+            raise AnnonceRefusee("La commune est demandée.")
         souhaitees = _activites(donnees.get("activites_souhaitees"))
         exclues = [a for a in _activites(donnees.get("activites_exclues")) if a not in souhaitees]
         identifiant = "e-" + secrets.token_hex(6)
@@ -158,22 +177,23 @@ class DepotAnnonces:
                    description, commune, code_insee, adresse, latitude, longitude,
                    lieu_precis, jours, creneaux, electricite, eau, redevance,
                    conditions, activites_souhaitees, activites_exclues,
-                   date_creation, date_maj)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   date_creation, date_maj, plages)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (identifiant, compte.identifiant, genre,
                  _obligatoire(donnees.get("titre"), 120, "Un titre"),
                  _texte(donnees.get("description"), 3000),
-                 _obligatoire(donnees.get("commune"), 120, "La commune"),
-                 _texte(donnees.get("code_insee"), 5),
+                 nom_commune, commune["code_insee"] if commune else None,
                  _texte(donnees.get("adresse"), 200) if genre == "emplacement" else None,
                  lat, lon, 1 if genre == "emplacement" else 0,
-                 json.dumps(_jours(donnees.get("jours"))),
+                 json.dumps(pl.jours_de(plages) or _jours(donnees.get("jours"))),
                  _texte(donnees.get("creneaux"), 300),
                  _tri_etat(donnees.get("electricite")), _tri_etat(donnees.get("eau")),
                  _texte(donnees.get("redevance"), 200),
                  _texte(donnees.get("conditions"), 2000),
-                 json.dumps(souhaitees), json.dumps(exclues), maintenant, maintenant))
-        return self.fiche(identifiant)
+                 json.dumps(souhaitees), json.dumps(exclues), maintenant, maintenant,
+                 json.dumps(plages)))
+        trouves = self._store.notifications.apres_emplacement(identifiant)
+        return dict(self.fiche(identifiant), services_trouves=trouves)
 
     def publier_demande(self, compte, donnees: dict) -> dict:
         if not compte.est_commercant:
@@ -183,6 +203,11 @@ class DepotAnnonces:
         if not cat.valider_paire(categorie, activite):
             raise AnnonceRefusee("Choisir une catégorie et une activité de la liste.")
         lat, lon = _position(donnees)
+        plages = _plages(donnees)
+        try:
+            zones = self._store.zones.lire_toutes(donnees.get("zones"))
+        except ZoneRefusee as exc:
+            raise AnnonceRefusee(str(exc))
         departements = []
         for d in donnees.get("departements") or []:
             d = str(d).strip().upper()
@@ -195,20 +220,23 @@ class DepotAnnonces:
                 """INSERT INTO demandes (identifiant, compte_id, titre, description,
                    categorie, activite, commune, latitude, longitude, rayon_km,
                    departements, jours, besoin_electricite, besoin_eau, surface_m2,
-                   champs_activite, date_creation, date_maj)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   champs_activite, date_creation, date_maj, plages)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (identifiant, compte.identifiant,
                  _obligatoire(donnees.get("titre"), 120, "Un titre"),
                  _texte(donnees.get("description"), 3000), categorie, activite,
                  _texte(donnees.get("commune"), 120), lat, lon,
                  _nombre(donnees.get("rayon_km"), 0, 300, "Le rayon"),
-                 json.dumps(departements), json.dumps(_jours(donnees.get("jours"))),
+                 json.dumps(departements),
+                 json.dumps(pl.jours_de(plages) or _jours(donnees.get("jours"))),
                  _tri_etat(donnees.get("besoin_electricite")),
                  _tri_etat(donnees.get("besoin_eau")),
                  _nombre(donnees.get("surface_m2"), 0, 500, "La surface"),
                  json.dumps(cat.valider_champs(categorie, donnees.get("champs_activite") or {})),
-                 maintenant, maintenant))
-        return self.fiche(identifiant)
+                 maintenant, maintenant, json.dumps(plages)))
+            self._store.zones.enregistrer(conn, identifiant, zones)
+        prevenues = self._store.notifications.apres_demande(identifiant)
+        return dict(self.fiche(identifiant), mairies_prevenues=prevenues)
 
     # -- changer d'état -----------------------------------------------------
 
@@ -310,7 +338,8 @@ class DepotAnnonces:
         commun = {
             "id": l["identifiant"], "titre": l["titre"], "description": l["description"],
             "commune": l["commune"], "lat": l["latitude"], "lon": l["longitude"],
-            "jours": _json(l["jours"], []), "etat": l["etat"],
+            "jours": _json(l["jours"], []), "plages": _json(l["plages"], []),
+            "etat": l["etat"],
             "motif_masquage": l["motif_masquage"] if l["etat"] == "masque" else None,
             "date_creation": l["date_creation"], "date_maj": l["date_maj"],
             "auteur": auteur.public() if auteur else None,
@@ -334,6 +363,9 @@ class DepotAnnonces:
                 "besoin_electricite": _oui_non(l["besoin_electricite"]),
                 "besoin_eau": _oui_non(l["besoin_eau"]), "surface_m2": l["surface_m2"],
                 "champs_activite": _json(l["champs_activite"], {}),
+                # Les contours seulement : la liste des communes et des
+                # mairies prévenues est réservée au titulaire (historique).
+                "zones": self._store.zones.de_la_demande(identifiant),
                 "avertissements_activites": [c.avertissement] if c and c.avertissement else [],
             })
         return commun
@@ -345,3 +377,20 @@ class DepotAnnonces:
             "UNION ALL SELECT identifiant, date_creation FROM demandes WHERE compte_id = ? "
             "ORDER BY date_creation DESC", (compte_id, compte_id))]
         return [self.fiche(i, voir_masquee=True) for i in ids]
+
+    def historique(self, compte_id: str) -> list:
+        """Les demandes d'un commerçant, chaque zone avec ses communes, et
+        pour chaque commune les recherches de mairie prévenues."""
+        sortie = []
+        for l in self._conn.execute(
+                "SELECT identifiant FROM demandes WHERE compte_id = ? "
+                "ORDER BY date_creation DESC", (compte_id,)):
+            fiche = self.fiche(l["identifiant"], voir_masquee=True)
+            prevenues = self._store.notifications.mairies_prevenues(l["identifiant"])
+            fiche["zones"] = self._store.zones.de_la_demande(l["identifiant"], avec_communes=True)
+            for z in fiche["zones"]:
+                for c in z["communes"]:
+                    c["prevenues"] = prevenues.get(c["code_insee"], [])
+            fiche["nombre_mairies_prevenues"] = sum(len(v) for v in prevenues.values())
+            sortie.append(fiche)
+        return sortie

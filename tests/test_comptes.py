@@ -116,7 +116,8 @@ def test_effacer_emporte_annonces_et_sessions(store):
     c = creer_compte(store, "Pizzaiolo")
     store.comptes.ouvrir_session(c.identifiant)
     store.annonces.publier_demande(c, {"titre": "T", "categorie": "alimentaire",
-                                       "activite": "food_truck", "latitude": 45, "longitude": 1})
+                                       "activite": "food_truck", "latitude": 46, "longitude": 1.9,
+                                       "zones": [{"genre": "ville", "code_insee": "23096"}]})
     store.comptes.effacer(c.identifiant)
-    for table in ("comptes", "sessions", "demandes"):
+    for table in ("comptes", "sessions", "demandes", "zones", "zone_communes"):
         assert store.connexion.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] == 0

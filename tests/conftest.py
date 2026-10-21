@@ -9,6 +9,7 @@ import os
 import threading
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
 
@@ -19,9 +20,15 @@ os.environ.setdefault("AMBULANTS_SILENCE", "1")
 MOT_DE_PASSE = "un-mot-de-passe-assez-long"
 
 
+#: Un extrait réel du référentiel (Creuse et Haute-Vienne) : verser les
+#: 35 000 communes à chaque essai ralentirait la suite pour rien.
+COMMUNES_ESSAI = Path(__file__).parent / "donnees" / "communes-essai.json.gz"
+GUERET, LIMOGES = "23096", "87085"
+
+
 @pytest.fixture
 def store(tmp_path):
-    s = Store(tmp_path / "essai.sqlite3")
+    s = Store(tmp_path / "essai.sqlite3", communes=COMMUNES_ESSAI)
     yield s
     s.close()
 
@@ -98,11 +105,18 @@ def connecter(client, compte):
     return client
 
 
+#: Une recherche de la mairie de Guéret : un lieu précis, le mardi matin.
 EMPLACEMENT = {
-    "genre": "emplacement", "titre": "Place de la mairie, le mardi", "commune": "Saint-Julien",
-    "latitude": 45.83, "longitude": 1.26, "jours": ["mardi"], "electricite": True, "eau": None,
+    "genre": "emplacement", "titre": "Place du marché, le mardi", "commune": "Guéret",
+    "code_insee": GUERET, "latitude": 46.1712, "longitude": 1.8715,
+    "plages": [{"jour": "mardi", "debut": "08:00", "fin": "13:00"}],
+    "electricite": True, "eau": None,
 }
+#: Un food truck installé près de Guéret, qui tourne dans 30 km.
 DEMANDE = {
     "titre": "Pizzas au feu de bois", "categorie": "alimentaire", "activite": "food_truck",
-    "latitude": 45.8, "longitude": 1.3, "rayon_km": 40, "jours": ["mardi", "jeudi"],
+    "latitude": 46.10, "longitude": 1.95,
+    "zones": [{"genre": "cercle", "lat": 46.10, "lon": 1.95, "rayon_km": 30}],
+    "plages": [{"jour": "mardi", "debut": "11:00", "fin": "14:00"},
+               {"jour": "jeudi", "debut": "18:00", "fin": "22:00"}],
 }

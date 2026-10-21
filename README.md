@@ -57,12 +57,19 @@ ambulants/
   annonces.py     emplacements (accueillants) et demandes (commerçants)
   categories.py   catégories d'activité, avertissements, champs propres
   migrations.py   paliers de schéma SQLite
+  communes.py     référentiel des communes (data/communes.json.gz), recherche
+  zones.py        zones d'action : ville, cercle, dessin ; leurs communes
+  geo.py          distances, point dans un polygone
+  plages.py       jours et horaires, recoupement
+  notifications.py correspondances recherche ↔ service, cloche
   store.py        connexion partagée verrouillée
   web/            la page : carte Leaflet, fonds IGN, service worker
 synology/         installeur du NAS (sans Docker)
+scripts/          importer_communes.py : refaire le référentiel des communes
 tests/            suite pytest (+ tests/js pour Node)
 ```
 
-Fonds de carte © IGN — Géoplateforme (Licence Ouverte Etalab 2.0). Recherche
+Fonds de carte © IGN — Géoplateforme (Licence Ouverte Etalab 2.0). Communes :
+API Découpage administratif (geo.api.gouv.fr), prises le 21 octobre 2026. Recherche
 d'adresse : Base adresse nationale, via la Géoplateforme. Leaflet 1.9.4
 (licence BSD-2, `ambulants/web/vendor/`).

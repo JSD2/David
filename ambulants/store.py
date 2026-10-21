@@ -98,7 +98,10 @@ class ConnexionVerrouillee:
 class Store:
     """Accès à la base."""
 
-    def __init__(self, chemin: Optional[Union[Path, str]] = None):
+    def __init__(self, chemin: Optional[Union[Path, str]] = None,
+                 communes: Optional[Union[Path, str]] = None):
+        """`communes` : le fichier du référentiel à verser, si ce n'est pas
+        celui livré (les essais en passent un de quelques communes)."""
         self.chemin = Path(chemin) if chemin else chemin_defaut()
         if str(self.chemin) != ":memory:":
             self.chemin.parent.mkdir(parents=True, exist_ok=True)
@@ -116,9 +119,18 @@ class Store:
         self._conn = ConnexionVerrouillee(brute)
 
         from .annonces import DepotAnnonces
+        from .communes import DepotCommunes, charger
         from .comptes import DepotComptes
+        from .notifications import DepotNotifications
+        from .zones import DepotZones
         self.comptes = DepotComptes(self)
+        self.communes = DepotCommunes(self)
+        self.zones = DepotZones(self)
+        self.notifications = DepotNotifications(self)
         self.annonces = DepotAnnonces(self)
+        # Long la première fois sur le NAS (35 000 lignes), instantané
+        # ensuite : rien n'est réécrit tant que le fichier ne change pas.
+        self.communes_versees = charger(self, communes)
 
     @property
     def connexion(self) -> ConnexionVerrouillee:

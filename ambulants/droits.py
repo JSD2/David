@@ -81,6 +81,8 @@ FONCTIONNALITES = (
        "visiteur", controle="ecran"),
     _F("filtre_categories", "Carte", "Filtrer par catégorie d'activité", "visiteur",
        controle="ecran"),
+    _F("communes", "Carte", "Chercher une commune du référentiel (zones d'action)",
+       "visiteur"),
     _F("recherche_adresse", "Carte",
        "Chercher une commune ou une adresse (Base adresse nationale)", "visiteur",
        controle="ecran"),
@@ -91,10 +93,19 @@ FONCTIONNALITES = (
     _F("mon_compte", "Compte", "Mon compte : profil, mes annonces, effacer le compte",
        "compte", plancher="compte", verrouillee=True),
 
+    # La cloche : une mairie y apprend qu'un service correspond à sa
+    # recherche (21 octobre). Sur le site seulement, pas encore par courriel.
+    _F("notifications", "Compte", "Notifications sur le site (services qui correspondent)",
+       "compte", plancher="compte"),
+    _F("historique_demandes", "Compte",
+       "Historique de mes demandes : villes de chaque zone, mairies prévenues",
+       "compte", plancher="compte", pour="commercant"),
+
     _F("publier_emplacement", "Publier",
-       "Publier un emplacement ou un besoin (accueillant vérifié)",
+       "Publier une recherche de service, avec ou sans lieu (accueillant vérifié)",
        "compte", plancher="compte", pour="accueillant"),
-    _F("publier_demande", "Publier", "Publier une demande d'emplacement (commerçant)",
+    _F("publier_demande", "Publier",
+       "Publier une demande : zones d'action (ville, cercle, dessin), disponibilités",
        "compte", plancher="compte", pour="commercant"),
     _F("retirer_annonce", "Publier", "Retirer une de ses annonces", "compte",
        plancher="compte"),

@@ -365,10 +365,12 @@ else
     nohup "$DEMARRAGE" >> "$JOURNAL" 2>&1 &
 fi
 # Seules les lignes écrites par ce démarrage-ci comptent : le journal garde
-# celles des installations précédentes.
+# celles des installations précédentes. Le premier démarrage verse les
+# 35 000 communes du référentiel en base : sur ce processeur, cela peut
+# prendre un moment (une fois seulement).
 CONFIRME=""
 ATTENTE=0
-while [ $ATTENTE -lt 120 ]; do
+while [ $ATTENTE -lt 300 ]; do
     if tail -n +"$((DEBUT_JOURNAL + 1))" "$JOURNAL" 2>/dev/null | grep -q "^Serveur sur "; then
         CONFIRME="oui"
         break

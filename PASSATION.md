@@ -3,7 +3,7 @@
 Document de reprise, à donner en début de nouvelle conversation. Il dit l'état
 réel du projet, les décisions prises et ce qui reste. Rien n'y est supposé.
 
-*Dernière mise à jour : 20 octobre 2026.*
+*Dernière mise à jour : 21 octobre 2026.*
 
 ## Objet
 
@@ -35,6 +35,90 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 - [x] Hébergement : le NAS Synology, à la place de WAY2NAV (décision du
       20 octobre). Voir « Livraison 2 » et `SYNOLOGY.md`.
 - [ ] Création de `main` (production). `develop` existe depuis le 20 octobre.
+
+---
+
+## Livraison 3 — recherches des mairies, zones d'action, notifications (21 octobre 2026)
+
+### Ce que le porteur du projet a demandé
+
+La mairie déclare qu'elle recherche un ou plusieurs commerces ou services
+ambulants, avec les créneaux qu'elle souhaite. Le commerçant dit où il est
+installé et sur quelles zones il intervient : une ville, un cercle, ou une
+zone dessinée à la main ; il peut en créer plusieurs, et dit ses jours et
+horaires. Les mairies qui correspondent sont prévenues ; celles qui n'ont
+rien demandé ne le sont pas. Le commerçant retrouve dans son historique
+chaque demande, les villes de chaque zone, et peut revoir la zone sur la
+carte.
+
+Trois choix tranchés le 21 octobre : l'historique montre **toutes** les
+villes de la zone, les mairies prévenues mises en évidence ; une mairie
+n'est prévenue que si **les créneaux se recoupent, quand les deux en ont
+donné** ; la notification est **sur le site** (cloche), le courriel
+viendra avec un prestataire d'envoi.
+
+### Ce qui est fait
+
+- **Référentiel des communes** (`ambulants/data/communes.json.gz`) :
+  34 969 communes avec leur centre, leur département et leur population,
+  pris le 21 octobre 2026 sur geo.api.gouv.fr
+  (`scripts/importer_communes.py` le refait). Versé en base au démarrage,
+  une seule fois (`communes.py`). Population absente : laissée absente
+  (6 communes).
+- **Zones** (`zones.py`, `geo.py`) : ville, cercle (1 à 300 km), dessin
+  (3 à 500 points, 600 km de côté au plus). Une commune est dans une zone
+  **si son centre y est** ; l'écran le dit. Les communes de chaque zone
+  sont calculées une fois, à la publication, et gardées.
+- **Plages horaires** (`plages.py`) : jour, début, fin, pour la mairie
+  (créneaux souhaités) et pour le commerçant (disponibilités). Une liste
+  vide est « non renseigné » et ne ferme rien.
+- **Correspondances et notifications** (`notifications.py`) : commune de
+  la recherche dans une zone du service, activité cherchée et non exclue,
+  créneaux qui se recoupent. Dans les deux sens : un service publié après
+  la recherche prévient la mairie, une recherche publiée après le service
+  le trouve aussitôt. Une paire ne prévient qu'une fois. La correspondance
+  est un événement enregistré : le premier pas de la mise en relation.
+- **Le code INSEE de la recherche** décide de la commune : la recherche
+  d'adresse le donne, un clic sur la carte le demande à la Base adresse
+  nationale (géocodage inverse) ; à défaut, le serveur prend la commune
+  dont le centre est le plus proche (approximation près des limites).
+- **Écrans** : « Publier une recherche de service » (mairie),
+  « Proposer mes services » (commerçant : zones, disponibilités, aperçu du
+  nombre de communes pendant le réglage), « Mes demandes » (historique),
+  cloche « Notifications (n) », zones dessinées sur la fiche d'un service.
+- **Tableau des droits** : trois lignes neuves — chercher une commune,
+  notifications, historique des demandes (commerçants).
+- La fiche publique d'un service montre ses contours, **pas** la liste de
+  ses villes ni les mairies prévenues (réservées à son historique).
+- Ce qui disparaît des formulaires : le rayon unique et les départements
+  de la demande, la case « jours » et le texte « créneaux » de la
+  recherche. Les colonnes restent en base ; une annonce d'avant les montre
+  encore.
+
+### Vérifié, et comment
+
+- 106 essais, verts sous Python 3.13 et 3.8.20 ; `tests/test_zones.py`
+  couvre la géométrie, les horaires, le référentiel, les trois zones, qui
+  est prévenu et qui ne l'est pas, l'historique, la fiche publique, l'API.
+- Scénario joué dans Chromium (serveur local, référentiel complet) : la
+  mairie de Guéret publie « Un food truck le mardi midi » (mardi
+  11:00–14:00) ; un food truck installé à Sainte-Feyre ajoute un cercle de
+  15 km (39 communes), Bourganeuf, et une zone dessinée à la souris,
+  disponible mardi 10:00–15:00 → « Demande publiée : 1 mairie prévenue » ;
+  la mairie voit « Notifications (1) », créneaux en commun mardi
+  11:00–14:00, et la fiche du service avec ses zones. Aucune erreur
+  JavaScript.
+- Sur téléphone (390 px, écran tactile simulé) : le tracé au doigt ajoute
+  la zone, la carte ne bouge pas pendant le geste, pas de défilement
+  horizontal.
+
+### Pas vérifié
+
+- **Sur le NAS** : le premier démarrage verse les 35 000 communes (0,35 s
+  ici ; plus long sur l'ARM, non mesuré). L'installeur attend désormais
+  jusqu'à 5 minutes et le journal dit « Référentiel des communes versé ».
+- Les communes à cheval sur une zone dont le centre est dehors ne sont pas
+  comptées : choix assumé, à revoir si les essais réels le contestent.
 
 ---
 

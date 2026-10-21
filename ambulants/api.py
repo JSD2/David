@@ -35,13 +35,14 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from . import __version__, droits
 from . import categories as cat
 from .annonces import AVERTISSEMENT_LEGAL, JOURS, AnnonceRefusee
 from .comptes import LIBELLES_NATURES, NATURES, CompteRefuse
 from .store import Store
+from .zones import ZoneRefusee
 
 WEB = Path(__file__).parent / "web"
 COOKIE = "amb_session"
@@ -95,6 +96,11 @@ ROUTES = (
     Route("POST", r"/api/moi/effacer", "mon_compte", "api_effacer"),
     Route("POST", r"/api/emplacements", "publier_emplacement", "api_publier_emplacement"),
     Route("POST", r"/api/demandes", "publier_demande", "api_publier_demande"),
+    Route("POST", r"/api/zones/apercu", "publier_demande", "api_apercu_zone"),
+    Route("GET", r"/api/communes", "communes", "api_communes"),
+    Route("GET", r"/api/moi/historique", "historique_demandes", "api_historique"),
+    Route("GET", r"/api/notifications", "notifications", "api_notifications"),
+    Route("POST", r"/api/notifications/lues", "notifications", "api_notifications_lues"),
     Route("POST", r"/api/annonces/(?P<id>[ed]-[0-9a-f]{12})/retirer", "retirer_annonce",
           "api_retirer"),
     Route("GET", r"/api/moderation/accueillants", "mod_verifier_accueillants",
@@ -502,6 +508,33 @@ class Gestionnaire(BaseHTTPRequestHandler):
 
     def api_publier_demande(self) -> None:
         self._json(self.app.store.annonces.publier_demande(self.compte, self._corps()), 201)
+
+    def api_apercu_zone(self) -> None:
+        """Les communes d'une zone avant publication : le commerçant voit ce
+        que son cercle ou son dessin couvre pendant qu'il le règle."""
+        try:
+            zone = self.app.store.zones.lire(self._corps().get("zone"))
+        except ZoneRefusee as exc:
+            raise Refus(400, str(exc))
+        communes = sorted(zone["communes"], key=lambda c: c["nom"])
+        self._json({"libelle": zone["libelle"], "nombre": len(communes),
+                    "communes": [{"code_insee": c["code_insee"], "nom": c["nom"],
+                                  "departement": c["departement"]} for c in communes[:200]]})
+
+    def api_communes(self) -> None:
+        texte = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
+        self._json({"communes": self.app.store.communes.chercher(texte[:80])},
+                   cache="public, max-age=3600")
+
+    def api_historique(self) -> None:
+        self._json({"demandes": self.app.store.annonces.historique(self.compte.identifiant)})
+
+    def api_notifications(self) -> None:
+        self._json(self.app.store.notifications.du_compte(self.compte.identifiant))
+
+    def api_notifications_lues(self) -> None:
+        self.app.store.notifications.marquer_lues(self.compte.identifiant)
+        self._json({"ok": True})
 
     def api_retirer(self, id: str) -> None:  # noqa: A002
         self.app.store.annonces.retirer(self.compte, id)

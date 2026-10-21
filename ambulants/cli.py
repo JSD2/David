@@ -45,6 +45,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             from .api import construire_serveur, environnement, indexable
             serveur = construire_serveur(store, args.hote, args.port)
             print(f"Serveur sur http://{args.hote}:{args.port}/ — base {store.chemin}")
+            if store.communes_versees:
+                print(f"Référentiel des communes versé en base : {store.communes_versees} communes")
             print(f"Environnement : {environnement()}"
                   + ("" if indexable() else " (bandeau affiché, indexation refusée)"))
             try:

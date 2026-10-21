@@ -24,7 +24,8 @@ packages = ["ambulants"]
 # Chaque type de fichier de la page doit être nommé : un motif oublié sort
 # du paquet sans bruit, et la page installée rend 404 sur son propre script
 # (piège payé quatre fois sur WAY2NAV).
-ambulants = ["web/*.html", "web/*.js", "web/*.css", "web/*.svg", "web/vendor/*"]
+ambulants = ["web/*.html", "web/*.js", "web/*.css", "web/*.svg", "web/vendor/*",
+             "data/*.json.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
