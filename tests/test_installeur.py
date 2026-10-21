@@ -9,7 +9,6 @@ Ce que cet essai ne prouve pas : le comportement de busybox et de DSM sur
 le NAS lui-même. Il éprouve la logique du script, pas la machine.
 """
 
-import io
 import json
 import os
 import socket
