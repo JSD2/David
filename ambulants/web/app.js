@@ -19,7 +19,7 @@
 
   const etat = {
     sens: 'tout',
-    categorie: '',
+    filtres: Filtres.vides(),
     compte: null,
     droits: null,
     annonces: D.carte.annonces,
@@ -126,13 +126,7 @@
 
   function visible(a) {
     if (etat.sens !== 'tout' && a.sens !== etat.sens) return false;
-    if (etat.categorie) {
-      if (a.sens === 'demande') return a.categorie === etat.categorie;
-      // Un emplacement sans activité souhaitée est ouvert à toutes.
-      if (!a.activites.length) return true;
-      return a.activites.some(x => x === etat.categorie || (ACTIVITE[x] && ACTIVITE[x].categorie === etat.categorie));
-    }
-    return true;
+    return Filtres.correspond(a, etat.filtres, ACTIVITE, Date.now());
   }
 
   function dessiner() {
@@ -167,7 +161,106 @@
 
   const selectCat = document.getElementById('filtre-categorie');
   CATEGORIES.forEach(c => selectCat.append(el('option', { value: c.cle }, c.libelle)));
-  selectCat.addEventListener('change', () => { etat.categorie = selectCat.value; dessiner(); });
+  selectCat.addEventListener('change', () => {
+    etat.filtres.categorie = selectCat.value;
+    etat.filtres.activite = '';
+    filtresChanges();
+  });
+
+  // ------------------------------------------------------------------
+  // Le panneau « Filtres » (22 octobre) : activité précise, jour et heure,
+  // équipements du lieu, mairies vérifiées, fraîcheur. Replié par défaut,
+  // pour laisser la carte grande ; les filtres actifs restent visibles en
+  // pastilles, qu'on retire d'un geste.
+  // ------------------------------------------------------------------
+
+  const boutonFiltres = document.getElementById('bouton-filtres');
+  const panneauFiltres = document.getElementById('panneau-filtres');
+  const pastilles = document.getElementById('pastilles');
+
+  function filtresChanges() {
+    selectCat.value = etat.filtres.categorie;
+    const actifs = Filtres.actifs(etat.filtres, libelleActivite);
+    // La catégorie a déjà son menu dans la barre : pas de pastille en double.
+    const montres = actifs.filter(x => !(x.cles.length === 1 && x.cles[0] === 'categorie'));
+    pastilles.replaceChildren(...montres.map(x => el('button', { type: 'button', class: 'pastille-filtre',
+      'aria-label': `Retirer le filtre ${x.texte}`, onclick: () => {
+        Object.assign(etat.filtres, x.remise); construireFiltres(); filtresChanges();
+      } }, x.texte, ' ×')));
+    boutonFiltres.textContent = montres.length ? `Filtres (${montres.length})` : 'Filtres';
+    boutonFiltres.classList.toggle('actif', montres.length > 0);
+    dessiner();
+  }
+
+  function construireFiltres() {
+    const f = etat.filtres;
+    const lier = (controle, cle, lire) => {
+      controle.addEventListener('change', () => { f[cle] = lire(controle); filtresChanges(); });
+      return controle;
+    };
+    const valeur = c => c.value;
+
+    const cat = CAT[f.categorie];
+    // La catégorie est aussi dans la barre ; elle est répétée ici parce que,
+    // sur téléphone, le panneau couvre la barre.
+    const categorie = el('select', {}, el('option', { value: '' }, 'Toutes les activités'),
+      ...CATEGORIES.map(c => el('option', { value: c.cle, selected: c.cle === f.categorie }, c.libelle)));
+    categorie.addEventListener('change', () => {
+      f.categorie = categorie.value; f.activite = ''; construireFiltres(); filtresChanges();
+    });
+    const activite = lier(el('select', { disabled: !cat },
+      el('option', { value: '' }, cat ? `Toute la catégorie « ${cat.libelle} »` : 'Choisir d’abord une catégorie'),
+      ...(cat ? cat.activites.map(a => el('option', { value: a.cle, selected: a.cle === f.activite }, a.libelle)) : [])),
+    'activite', valeur);
+
+    const jour = lier(el('select', {}, el('option', { value: '' }, 'Tous les jours'),
+      ...Filtres.JOURS.map(j => el('option', { value: j, selected: j === f.jour }, j))), 'jour', valeur);
+    const debut = lier(el('input', { type: 'time', value: f.debut, step: '900', 'aria-label': 'À partir de' }), 'debut', valeur);
+    const fin = lier(el('input', { type: 'time', value: f.fin, step: '900', 'aria-label': 'Jusqu’à' }), 'fin', valeur);
+    const sansHoraires = lier(el('input', { type: 'checkbox', checked: f.sansHoraires }), 'sansHoraires', c => c.checked);
+
+    const choixEquipement = (cle) => lier(el('select', {},
+      el('option', { value: '', selected: !f[cle] }, 'Indifférent'),
+      el('option', { value: 'oui', selected: f[cle] === 'oui' }, 'Oui'),
+      el('option', { value: 'oui_inconnu', selected: f[cle] === 'oui_inconnu' }, 'Oui, ou non renseigné')), cle, valeur);
+
+    const verifiees = lier(el('input', { type: 'checkbox', checked: f.mairiesVerifiees }), 'mairiesVerifiees', c => c.checked);
+    const age = lier(el('select', {}, ...[[0, 'Toutes dates'], [7, 'Moins de 7 jours'], [30, 'Moins de 30 jours'], [90, 'Moins de 90 jours']]
+      .map(([v, l]) => el('option', { value: String(v), selected: v === f.ageJours }, l))), 'ageJours', c => +c.value);
+
+    panneauFiltres.replaceChildren(el('div', { class: 'grille-filtres' },
+      el('fieldset', {}, el('legend', {}, 'Activité'),
+        el('label', {}, 'Catégorie', categorie),
+        el('label', {}, 'Activité précise', activite)),
+      el('fieldset', {}, el('legend', {}, 'Jour et heure'),
+        el('label', {}, 'Jour', jour),
+        el('div', { class: 'cases' }, el('label', {}, 'De', debut), el('label', {}, 'À', fin)),
+        el('label', { class: 'case' }, sansHoraires, 'Inclure les annonces sans horaires indiqués')),
+      el('fieldset', {}, el('legend', {}, 'Lieu proposé par la mairie'),
+        el('label', {}, 'Électricité', choixEquipement('electricite')),
+        el('label', {}, 'Eau', choixEquipement('eau')),
+        el('label', {}, 'Occupation gratuite', choixEquipement('gratuit')),
+        el('p', { class: 'aide' }, 'Ne concerne que les recherches des mairies.')),
+      el('fieldset', {}, el('legend', {}, 'Confiance et fraîcheur'),
+        el('label', { class: 'case' }, verifiees, 'Seulement les mairies vérifiées'),
+        el('label', {}, 'Publiée', age),
+        el('p', { class: 'aide' }, 'Les entreprises vérifiées viendront avec la vérification du SIRET.'))),
+    el('div', { class: 'cases' },
+      el('button', { type: 'button', onclick: () => {
+        etat.filtres = Filtres.vides(); construireFiltres(); filtresChanges();
+      } }, 'Tout effacer'),
+      el('button', { type: 'button', class: 'principal', onclick: () => basculerFiltres(false) }, 'Voir la carte')));
+  }
+
+  function basculerFiltres(ouvrir) {
+    panneauFiltres.hidden = !ouvrir;
+    boutonFiltres.setAttribute('aria-expanded', String(ouvrir));
+    carte.invalidateSize();
+  }
+  boutonFiltres.addEventListener('click', () => {
+    if (panneauFiltres.hidden) construireFiltres();
+    basculerFiltres(panneauFiltres.hidden);
+  });
 
   carte.on('click', (e) => {
     if (etat.placement) etat.placement(e.latlng);
@@ -279,6 +372,7 @@
       if (f.creneaux) fait('Précisions horaires', f.creneaux);
       fait('Électricité', triEtat(f.electricite));
       fait('Eau', triEtat(f.eau));
+      fait('Occupation gratuite', triEtat(f.gratuit));
       fait('Redevance', ouInconnu(f.redevance));
       fait('Services recherchés', f.activites_souhaitees.length ? f.activites_souhaitees.map(libelleActivite).join(', ') : 'tous');
       if (f.activites_exclues.length) fait('Services exclus', f.activites_exclues.map(libelleActivite).join(', '));
@@ -692,7 +786,8 @@
     const adresse = el('input', { type: 'text', maxlength: '200' });
     const elec = selectTriEtat();
     const eau = selectTriEtat();
-    const redevance = el('input', { type: 'text', maxlength: '200', placeholder: 'Gratuit, 10 € par jour…' });
+    const gratuit = selectTriEtat();
+    const redevance = el('input', { type: 'text', maxlength: '200', placeholder: '10 € par jour…' });
     const conditionsTxt = el('textarea', { rows: '2', maxlength: '2000' });
     const description = el('textarea', { rows: '3', maxlength: '3000' });
     const plages = editeurPlages('Créneaux souhaités',
@@ -711,7 +806,7 @@
         const r = await api('/api/emplacements', {
           genre: genre.valeur, titre: titre.value, commune: commune.value, code_insee: pos.insee,
           adresse: adresse.value, latitude: pos.lat, longitude: pos.lon, plages: plages.valeur(),
-          electricite: valeurTriEtat(elec), eau: valeurTriEtat(eau),
+          electricite: valeurTriEtat(elec), eau: valeurTriEtat(eau), gratuit: valeurTriEtat(gratuit),
           redevance: redevance.value, conditions: conditionsTxt.value, description: description.value,
           activites_souhaitees: souhaitees.valeur(), activites_exclues: exclues.valeur(),
         });
@@ -725,7 +820,7 @@
     } }, el('p', { class: 'aide' }, 'Dites quels commerces ou services ambulants vous recherchez. Les services dont la zone d’action couvre votre commune, et dont les horaires conviennent, vous seront signalés.'),
     champ('Titre', titre), souhaitees.bloc, plages.bloc, choixGenre, pos.bloc, champ('Commune', commune),
     champ('Adresse (emplacement précis)', adresse), champ('Électricité', elec), champ('Eau', eau),
-    champ('Redevance d’occupation', redevance, 'Laisser vide si elle n’est pas encore fixée.'),
+    champ('Occupation gratuite', gratuit), champ('Redevance d’occupation', redevance, 'Laisser vide si elle n’est pas encore fixée.'),
     exclues.bloc, champ('Conditions', conditionsTxt), champ('Description', description),
     avertissementLegal(), message, el('button', { type: 'submit', class: 'principal' }, 'Publier'));
     ouvrir(el('h2', {}, 'Publier une recherche de service'), f);

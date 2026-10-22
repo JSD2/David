@@ -38,6 +38,37 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 
 ---
 
+## Livraison 6 — les filtres de la carte (22 octobre 2026)
+
+Demande : « pour les recherches, il manque tous les filtres utiles ».
+Retenus par le porteur du projet : activité précise et jour/heure,
+équipements du lieu, confiance et fraîcheur, dans un panneau « Filtres »
+repliable (le filtre « autour de moi » n'a pas été retenu).
+
+- `web/filtres.js` : la règle de tri, à part, éprouvée sous Node
+  (`tests/js/filtres.test.mjs`). Activité précise (une recherche de mairie
+  sans activité les accepte toutes, une exclusion écarte) ; jour et plage
+  d'heures (les annonces sans horaires restent par défaut, une case les
+  écarte) ; électricité, eau, gratuité « oui » ou « oui, ou non
+  renseigné » (jamais un non renseigné pris pour non) ; mairies vérifiées ;
+  publiée depuis 7, 30 ou 90 jours.
+- **Occupation gratuite** : nouveau champ oui / non / non renseigné de la
+  recherche de mairie (palier 4). La gratuité n'est pas devinée dans le
+  texte libre de la redevance.
+- Panneau replié par défaut ; les filtres actifs en pastilles qu'on retire
+  d'un geste ; sur téléphone, plein écran.
+- Pas de filtre « entreprises vérifiées » : il viderait la carte tant que
+  la vérification du SIRET n'est pas branchée. L'écran le dit.
+- Ligne « filtres_avances » au tableau des droits (tenue par l'écran : le
+  tri se fait dans le navigateur).
+
+Vérifié : 115 essais Python (dont les 9 essais JavaScript, lancés par Node), sous 3.13 et 3.8.20 ;
+dans Chromium sur cinq annonces : alimentaire 4, boulangerie 3, + mardi 2,
+eau « oui » 4, « oui ou non renseigné » 5, pastille retirée 5 ; sur
+téléphone, catégorie et activité réglées depuis le panneau.
+
+---
+
 ## Livraison 5 — une mairie ne voit que les services qui viennent chez elle (22 octobre 2026)
 
 Demande du porteur du projet : « pour les mairies qui ne correspondent pas

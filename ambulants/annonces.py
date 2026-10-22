@@ -178,8 +178,8 @@ class DepotAnnonces:
                    description, commune, code_insee, adresse, latitude, longitude,
                    lieu_precis, jours, creneaux, electricite, eau, redevance,
                    conditions, activites_souhaitees, activites_exclues,
-                   date_creation, date_maj, plages)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   date_creation, date_maj, plages, gratuit)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (identifiant, compte.identifiant, genre,
                  _obligatoire(donnees.get("titre"), 120, "Un titre"),
                  _texte(donnees.get("description"), 3000),
@@ -192,7 +192,7 @@ class DepotAnnonces:
                  _texte(donnees.get("redevance"), 200),
                  _texte(donnees.get("conditions"), 2000),
                  json.dumps(souhaitees), json.dumps(exclues), maintenant, maintenant,
-                 json.dumps(plages)))
+                 json.dumps(plages), _tri_etat(donnees.get("gratuit"))))
         trouves = self._store.notifications.apres_emplacement(identifiant)
         return dict(self.fiche(identifiant), services_trouves=trouves)
 
@@ -293,7 +293,8 @@ class DepotAnnonces:
         points = []
         for l in self._conn.execute(
                 "SELECT e.identifiant, e.genre, e.titre, e.commune, e.latitude, "
-                "e.longitude, e.jours, e.activites_souhaitees, c.organisation, "
+                "e.longitude, e.jours, e.activites_souhaitees, e.activites_exclues, "
+                "e.plages, e.electricite, e.eau, e.gratuit, e.date_creation, c.organisation, "
                 "c.verification FROM emplacements e JOIN comptes c "
                 "ON c.identifiant = e.compte_id WHERE e.etat = 'publie' "
                 "AND c.etat = 'actif' AND COALESCE(c.verification, '') != 'refuse' "
@@ -304,11 +305,16 @@ class DepotAnnonces:
                 "lat": l["latitude"], "lon": l["longitude"],
                 "jours": _json(l["jours"], []),
                 "activites": _json(l["activites_souhaitees"], []),
+                "exclues": _json(l["activites_exclues"], []),
+                "plages": _json(l["plages"], []),
+                "electricite": _oui_non(l["electricite"]), "eau": _oui_non(l["eau"]),
+                "gratuit": _oui_non(l["gratuit"]), "date": l["date_creation"],
                 "organisation": l["organisation"],
                 "verifie": l["verification"] == "verifie"})
         for l in self._conn.execute(
                 "SELECT d.identifiant, d.titre, d.commune, d.latitude, d.longitude, "
-                "d.jours, d.categorie, d.activite, d.rayon_km, c.pseudo, c.organisation, "
+                "d.jours, d.plages, d.date_creation, d.categorie, d.activite, d.rayon_km, "
+                "c.pseudo, c.organisation, "
                 "c.siret_verifie FROM demandes d JOIN comptes c "
                 "ON c.identifiant = d.compte_id WHERE d.etat = 'publie' "
                 "AND c.etat = 'actif' ORDER BY d.date_creation DESC"):
@@ -316,7 +322,8 @@ class DepotAnnonces:
                 "id": l["identifiant"], "sens": "demande",
                 "titre": l["titre"], "commune": l["commune"],
                 "lat": l["latitude"], "lon": l["longitude"],
-                "jours": _json(l["jours"], []), "categorie": l["categorie"],
+                "jours": _json(l["jours"], []), "plages": _json(l["plages"], []),
+                "date": l["date_creation"], "categorie": l["categorie"],
                 "activite": l["activite"], "rayon_km": l["rayon_km"],
                 "organisation": l["organisation"] or l["pseudo"],
                 "entreprise_verifiee": bool(l["siret_verifie"])})
@@ -377,7 +384,8 @@ class DepotAnnonces:
                 "sens": "emplacement", "genre": l["genre"], "adresse": l["adresse"],
                 "lieu_precis": bool(l["lieu_precis"]), "creneaux": l["creneaux"],
                 "electricite": _oui_non(l["electricite"]), "eau": _oui_non(l["eau"]),
-                "redevance": l["redevance"], "conditions": l["conditions"],
+                "redevance": l["redevance"], "gratuit": _oui_non(l["gratuit"]),
+                "conditions": l["conditions"],
                 "activites_souhaitees": _json(l["activites_souhaitees"], []),
                 "activites_exclues": _json(l["activites_exclues"], []),
                 "avertissements_activites": [],

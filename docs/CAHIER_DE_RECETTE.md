@@ -82,3 +82,16 @@ Préparation : une base de test, un compte administrateur posé par
 | 6.14 | Les mêmes, vus sans compte | Les trois services |
 | 6.15 | Commerçant : publier sans aucune zone | « visible de toutes les mairies, aucune n'est prévenue » |
 
+## 7. Filtres de la carte
+
+| # | Geste | Attendu |
+| --- | --- | --- |
+| 7.1 | Catégorie « Alimentaire » puis « Filtres » → Activité précise « Boulangerie » | Restent les boulangers, et les recherches de mairie qui acceptent l'alimentaire (ou tout) ; pastille « Boulangerie, pâtisserie » |
+| 7.2 | Jour « mardi », de 13:00 à 18:00 | Restent les annonces présentes le mardi sur ce créneau ; celles sans horaires restent tant que la case est cochée |
+| 7.3 | Décocher « Inclure les annonces sans horaires » | Les annonces sans horaires disparaissent |
+| 7.4 | Eau « Oui », puis « Oui, ou non renseigné » | D'abord les seuls lieux avec eau ; puis aussi ceux où l'eau n'est pas renseignée ; les services ne sont pas touchés |
+| 7.5 | « Seulement les mairies vérifiées » | Les recherches de mairies non vérifiées disparaissent |
+| 7.6 | Publiée « Moins de 7 jours » | Les annonces plus anciennes disparaissent |
+| 7.7 | Retirer une pastille d'un geste ; « Tout effacer » | Le filtre correspondant se lève ; tout revient |
+| 7.8 | Sur téléphone, « Filtres » | Le panneau prend l'écran, catégorie comprise ; « Voir la carte » reste en bas |
+| 7.9 | Mairie : publier avec « Occupation gratuite » Oui | La fiche dit « Occupation gratuite : Oui » ; sans réponse, « non renseigné » |

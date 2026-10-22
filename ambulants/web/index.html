@@ -42,11 +42,15 @@
     <span class="invisible">Catégorie</span>
     <select id="filtre-categorie"><option value="">Toutes les activités</option></select>
   </label>
+  <button type="button" id="bouton-filtres" data-droit="filtres_avances" aria-expanded="false"
+          aria-controls="panneau-filtres">Filtres</button>
   <div id="fonds" class="segments petits" role="radiogroup" aria-label="Fond de carte">
     <button type="button" role="radio" aria-checked="true" data-fond="plan">Plan</button>
     <button type="button" role="radio" aria-checked="false" data-fond="satellite">Satellite</button>
   </div>
+  <div id="pastilles" aria-live="polite"></div>
 </div>
+<div id="panneau-filtres" hidden></div>
 
 <main id="principal">
   <div id="carte" aria-label="Carte des emplacements et des demandes"></div>
@@ -69,6 +73,7 @@
 
 <script id="donnees" type="application/json"><!--DONNEES--></script>
 <script src="/static/vendor/leaflet.js"></script>
+<script src="/static/filtres.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

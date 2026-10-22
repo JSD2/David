@@ -216,6 +216,16 @@ MIGRATIONS: Tuple[Migration, ...] = (
         CREATE INDEX IF NOT EXISTS idx_notif_compte ON notifications(compte_id, lue);
         """,
     ),
+    Migration(
+        version=4,
+        description="Occupation gratuite ou non d'un emplacement",
+        sql="""
+        -- Oui (1), non (0), non renseigné (NULL). La redevance reste un
+        -- texte libre (« 10 € par jour ») ; la gratuité n'est pas devinée
+        -- dans ce texte, elle se dit ici.
+        ALTER TABLE emplacements ADD COLUMN gratuit INTEGER;
+        """,
+    ),
 )
 
 DERNIERE_VERSION = MIGRATIONS[-1].version

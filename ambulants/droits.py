@@ -79,6 +79,11 @@ FONCTIONNALITES = (
     _F("filtre_sens", "Carte",
        "Filtre « je cherche un service » / « je cherche un emplacement »",
        "visiteur", controle="ecran"),
+    # Les filtres du 22 octobre : tout se trie dans le navigateur, sur les
+    # données de la carte — la ligne n'est tenue que par l'écran.
+    _F("filtres_avances", "Carte",
+       "Filtres : activité précise, jour et heure, équipements, mairies vérifiées, fraîcheur",
+       "visiteur", controle="ecran"),
     _F("filtre_categories", "Carte", "Filtrer par catégorie d'activité", "visiteur",
        controle="ecran"),
     _F("communes", "Carte", "Chercher une commune du référentiel (zones d'action)",

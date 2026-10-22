@@ -125,3 +125,22 @@ def test_la_fiche_ne_livre_ni_adresse_ni_siret(store):
     texte = repr(store.annonces.fiche(d["id"]))
     assert "paul@exemple.fr" not in texte
     assert "73282932000074" not in texte
+
+
+def test_carte_donne_ce_que_les_filtres_trient(store):
+    """Plages, équipements, gratuité, exclusions, date : la carte les porte,
+    les filtres les trient dans le navigateur."""
+    a = creer_compte(store, "Lussac", "accueillant")
+    e = store.annonces.publier_emplacement(a, dict(EMPLACEMENT, gratuit=True,
+                                                   activites_exclues=["sante"]))
+    assert e["gratuit"] is True
+    d = store.annonces.publier_demande(creer_compte(store, "Paul"), DEMANDE)
+    points = {p["id"]: p for p in store.annonces.carte()}
+    pe, pd = points[e["id"]], points[d["id"]]
+    assert pe["gratuit"] is True and pe["electricite"] is True and pe["eau"] is None
+    assert pe["exclues"] == ["sante"] and pe["plages"] == EMPLACEMENT["plages"] and pe["date"]
+    assert pd["plages"] == DEMANDE["plages"] and pd["date"]
+    # Gratuité non dite : non renseignée, pas « non ».
+    f = store.annonces.publier_emplacement(a, EMPLACEMENT)
+    assert f["gratuit"] is None
+
