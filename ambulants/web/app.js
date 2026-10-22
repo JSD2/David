@@ -23,6 +23,8 @@
     compte: null,
     droits: null,
     annonces: D.carte.annonces,
+    // La carte d'une mairie arrive déjà filtrée dans la page : la légende le dit dès le départ.
+    filtreMairie: D.carte.filtre === 'mairie',
     placement: null, // fonction appelée au prochain clic sur la carte
   };
 

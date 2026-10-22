@@ -38,6 +38,24 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 
 ---
 
+## Livraison 7 — spécification fonctionnelle et notice en PDF (22 octobre 2026)
+
+`docs/notice/notice-services-ambulants.pdf` (21 pages) : spécification
+fonctionnelle (acteurs, comptes, recherches, zones, correspondances, qui
+voit quoi, filtres, modération, données, cadre légal, ce qui manque) et
+notice pas à pas par type d'utilisateur, avec 19 captures.
+
+- Les captures sont prises sur le site réel par
+  `scripts/notice/captures.mjs`, sur une base neuve garnie de données
+  d'exemple fictives (lieux réels de la Creuse et de la Haute-Vienne) ;
+  le même script imprime le PDF depuis `docs/notice/notice.html`. Le
+  refaire après un changement d'écran : voir l'en-tête du script.
+- Défaut trouvé en relisant les captures, corrigé : après un rechargement,
+  la légende d'une mairie ne disait plus que sa carte est filtrée (le
+  filtrage, lui, était juste).
+
+---
+
 ## Livraison 6 — les filtres de la carte (22 octobre 2026)
 
 Demande : « pour les recherches, il manque tous les filtres utiles ».

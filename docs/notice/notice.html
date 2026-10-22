@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Services ambulants — spécification fonctionnelle et notice d'utilisation</title>
+<style>
+  @page { size: A4; }
+  :root { --texte: #1f2937; --doux: #6b7280; --accent: #1d4ed8; --bord: #d1d5db; --orange: #c2410c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--texte); font: 10.5pt/1.5 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 26pt; line-height: 1.15; margin: 0 0 8pt; }
+  h2 { font-size: 16pt; margin: 0 0 8pt; padding-bottom: 4pt; border-bottom: 2px solid var(--accent); break-after: avoid; }
+  h3 { font-size: 12pt; margin: 14pt 0 4pt; break-after: avoid; }
+  h4 { font-size: 10.5pt; margin: 10pt 0 2pt; break-after: avoid; }
+  p, li { margin: 0 0 5pt; }
+  ul, ol { margin: 0 0 6pt; padding-left: 16pt; }
+  .saut { break-before: page; }
+  .couverture { height: 245mm; display: flex; flex-direction: column; justify-content: center; }
+  .couverture .sur-titre { color: var(--accent); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 10pt; }
+  .couverture .sous { font-size: 13pt; color: var(--doux); margin-bottom: 18pt; }
+  .couverture img { width: 100%; border: 1px solid var(--bord); border-radius: 6px; margin: 10pt 0 14pt; }
+  .meta { font-size: 9.5pt; color: var(--doux); }
+  .meta td { padding: 1pt 10pt 1pt 0; vertical-align: top; }
+  figure { margin: 8pt 0 12pt; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--bord); border-radius: 4px; display: block; }
+  figure.etroite img { width: 62%; margin: 0 auto; }
+  figure.duo { display: flex; gap: 10pt; align-items: flex-start; }
+  figure.duo > div { flex: 1; }
+  figure.duo img { width: 100%; }
+  figcaption { font-size: 8.5pt; color: var(--doux); margin-top: 3pt; text-align: center; }
+  table.tab { width: 100%; border-collapse: collapse; margin: 4pt 0 10pt; font-size: 9.5pt; break-inside: auto; }
+  table.tab th, table.tab td { border: 1px solid var(--bord); padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  table.tab th { background: #f3f4f6; }
+  table.tab tr { break-inside: avoid; }
+  .encadre { border-left: 4px solid var(--accent); background: #eff6ff; padding: 6pt 9pt; margin: 8pt 0; break-inside: avoid; }
+  .attention { border-left: 4px solid #d97706; background: #fef3c7; padding: 6pt 9pt; margin: 8pt 0; break-inside: avoid; }
+  .regle { font-weight: 700; }
+  .etapes li { margin-bottom: 4pt; }
+  .sommaire li { margin-bottom: 2pt; }
+  .pastille { display: inline-block; width: 9pt; height: 9pt; vertical-align: -1pt; border: 1.5pt solid #fff; box-shadow: 0 0 0 .6pt rgba(0,0,0,.4); }
+  .p-empl { background: #1d4ed8; border-radius: 2px; }
+  .p-besoin { background: #7c3aed; transform: rotate(45deg) scale(.85); }
+  .p-serv { background: #c2410c; border-radius: 50%; }
+  code { font-size: 9pt; background: #f3f4f6; padding: 0 3pt; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ================================================================= -->
+<section class="couverture">
+  <div class="sur-titre">Spécification fonctionnelle et notice d'utilisation</div>
+  <h1>Services ambulants</h1>
+  <div class="sous">La carte qui met en relation les communes qui veulent accueillir un service ambulant
+    et les services ambulants qui cherchent où s'installer.</div>
+  <img src="images/02-fiche-visiteur.jpg" alt="">
+  <table class="meta">
+    <tr><td>Nom du site</td><td>provisoire (« Services ambulants »), le nom n'est pas encore choisi</td></tr>
+    <tr><td>Version décrite</td><td>branche <code>develop</code>, 22 octobre 2026 — site de test</td></tr>
+    <tr><td>Captures</td><td>prises sur le site lui-même, avec des données d'exemple fictives
+      (comptes et annonces) sur des lieux réels de la Creuse et de la Haute-Vienne</td></tr>
+  </table>
+</section>
+
+<!-- ================================================================= -->
+<section class="saut">
+  <h2>Sommaire</h2>
+  <ol class="sommaire">
+    <li><strong>Spécification fonctionnelle</strong>
+      <ol>
+        <li>Objet du site</li>
+        <li>Les acteurs et leurs droits</li>
+        <li>Les comptes</li>
+        <li>La recherche d'une mairie</li>
+        <li>L'offre d'un service ambulant : zones d'action et disponibilités</li>
+        <li>Correspondances et notifications</li>
+        <li>Qui voit quoi sur la carte</li>
+        <li>Les filtres de la carte</li>
+        <li>Modération et administration</li>
+        <li>Données publiques utilisées</li>
+        <li>Cadre légal et confiance</li>
+        <li>Ce qui n'existe pas encore</li>
+      </ol></li>
+    <li><strong>Notice d'utilisation</strong>
+      <ol>
+        <li>Lire la carte (tout le monde)</li>
+        <li>Mairie : s'inscrire, publier une recherche, être prévenue</li>
+        <li>Service ambulant : s'inscrire, déclarer ses zones, suivre ses demandes</li>
+        <li>Filtrer la carte</li>
+        <li>Sur téléphone</li>
+        <li>Modération et administration</li>
+      </ol></li>
+  </ol>
+</section>
+
+<!-- ================================================================= -->
+<section class="saut">
+  <h2>Partie 1 — Spécification fonctionnelle</h2>
+
+  <h3>1. Objet du site</h3>
+  <p>Une commune rurale veut souvent un commerce ou un service une fois par semaine sans savoir à qui
+    s'adresser ; un food truck, un boulanger ou un bureau mobile démarche commune par commune. Le site les
+    réunit autour d'une seule carte :</p>
+  <ul>
+    <li>les <strong>accueillants</strong> — mairies d'abord, mais aussi intercommunalités, campings, zones
+      d'activité, entreprises, parkings de supermarché, associations, organisateurs de marchés — disent
+      <strong>ce qu'ils recherchent</strong> ;</li>
+    <li>les <strong>services ambulants</strong> — alimentaire, commerce, services à la personne, santé,
+      administratif, artisanat, culture — disent <strong>où ils vont et quand ils sont libres</strong>.</li>
+  </ul>
+  <p>Quand les deux correspondent, la mairie est <strong>prévenue</strong>. Le site aide à se trouver ;
+    <strong>il ne délivre aucune autorisation</strong>.</p>
+
+  <h3>2. Les acteurs et leurs droits</h3>
+  <table class="tab">
+    <tr><th>Acteur</th><th>Ce qu'il peut faire</th></tr>
+    <tr><td>Visiteur sans compte</td><td>Voir la carte et les fiches, filtrer, chercher une adresse.</td></tr>
+    <tr><td>Accueillant (mairie…)</td><td>Publier des recherches de service, recevoir les notifications, voir
+      sur la carte les services qui viennent chez lui.</td></tr>
+    <tr><td>Service ambulant (commerçant)</td><td>Publier ses offres (activité, zones d'action,
+      disponibilités), suivre dans son historique les villes de ses zones et les mairies prévenues.</td></tr>
+    <tr><td>Modérateur</td><td>Vérifier ou refuser un compte accueillant, masquer ou réafficher une
+      annonce.</td></tr>
+    <tr><td>Administrateur</td><td>En plus : régler le tableau des droits, donner les rôles.</td></tr>
+  </table>
+  <p><strong>Le tableau des droits.</strong> Chaque fonction du site a sa ligne, avec un niveau minimum
+    parmi cinq : sans compte, compte, <em>abonné</em>, modérateur, administrateur. Une ligne peut être
+    désactivée pour tout le monde. Le niveau « abonné » existe dès maintenant pour qu'un modèle « gratuit,
+    puis payant pour aller plus loin » soit un simple réglage le jour venu ; personne n'est abonné tant que
+    l'abonnement n'existe pas.</p>
+
+  <h3>3. Les comptes</h3>
+  <ul>
+    <li><span class="regle">Deux types de comptes</span>, une seule connexion : accueillant ou service
+      ambulant.</li>
+    <li><span class="regle">On s'inscrit, on est connecté, on publie</span> : aucune attente de
+      validation.</li>
+    <li>Une mairie indique sa <strong>commune</strong>, choisie dans le référentiel officiel des communes :
+      c'est elle qui décide des services qu'elle voit sur la carte.</li>
+    <li>Un service ambulant peut déclarer son <strong>SIRET</strong> : il est contrôlé (14 chiffres, clé de
+      contrôle) mais seulement <em>déclaré</em> ; aucun badge « entreprise vérifiée » tant que la vérification
+      par l'annuaire des entreprises n'est pas branchée.</li>
+    <li>Mot de passe de 12 caractères au moins. L'adresse électronique n'est jamais affichée publiquement.</li>
+    <li>Chacun peut <strong>effacer son compte</strong> (mot de passe redemandé) : ses annonces partent
+      avec lui.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>4. La recherche d'une mairie</h3>
+  <p>Une mairie déclare qu'elle recherche un ou plusieurs commerces ou services ambulants :</p>
+  <table class="tab">
+    <tr><th>Champ</th><th>Règle</th></tr>
+    <tr><td>Services recherchés</td><td>Une ou plusieurs catégories ou activités. Aucune cochée : toutes.</td></tr>
+    <tr><td>Services exclus</td><td>Facultatif : une activité exclue n'est jamais proposée.</td></tr>
+    <tr><td>Créneaux souhaités</td><td>Des plages « jour, de, à » (mardi 11:00–14:00). Aucune : non renseigné.</td></tr>
+    <tr><td>Le lieu</td><td>Sans lieu fixé (la commune) ou un emplacement précis (adresse).</td></tr>
+    <tr><td>Où</td><td>Une adresse cherchée, ou un clic sur la carte ; la commune en est déduite.</td></tr>
+    <tr><td>Électricité, eau, occupation gratuite</td><td>Oui, non ou non renseigné.</td></tr>
+    <tr><td>Redevance, conditions, description</td><td>Texte libre.</td></tr>
+  </table>
+  <p class="encadre"><strong>Règle générale :</strong> une information qu'on n'a pas donnée reste
+    « non renseigné ». Elle n'est jamais prise pour « non » ni pour zéro.</p>
+
+  <h3>5. L'offre d'un service ambulant</h3>
+  <p>Un service dit où il est installé, son activité, ses <strong>disponibilités</strong> (plages « jour,
+    de, à ») et ses <strong>zones d'action</strong>. Il peut en créer plusieurs, de trois sortes :</p>
+  <table class="tab">
+    <tr><th>Zone</th><th>Comment</th></tr>
+    <tr><td>Une ville</td><td>Choisie dans le référentiel des communes.</td></tr>
+    <tr><td>Un cercle</td><td>Un centre (sa position, ou un clic) et un rayon de 1 à 300 km ; le nombre de
+      communes couvertes s'affiche pendant le réglage.</td></tr>
+    <tr><td>Un dessin à main levée</td><td>Un contour tracé au doigt ou à la souris sur la carte.</td></tr>
+  </table>
+  <ul>
+    <li><span class="regle">Une commune est dans une zone si son centre y est.</span> Une commune qui ne
+      déborde dans le cercle que par un bout de territoire n'est pas comptée.</li>
+    <li>Les zones sont <strong>facultatives</strong> : sans zone, le service est visible de toutes les
+      mairies, mais <strong>n'en prévient aucune</strong> (on ne sait pas où il va).</li>
+    <li>Dans son <strong>historique</strong>, le service retrouve chaque demande, et pour chaque zone la
+      liste de ses villes, les mairies prévenues mises en évidence ; un bouton montre la zone sur la carte.</li>
+  </ul>
+</section>
+
+<section>
+  <h3>6. Correspondances et notifications</h3>
+  <p>Une mairie est prévenue d'un service quand <strong>trois conditions</strong> sont réunies :</p>
+  <ol>
+    <li>sa commune est dans l'une des zones du service ;</li>
+    <li>l'activité du service est de celles qu'elle recherche, et pas de celles qu'elle exclut ;</li>
+    <li>les créneaux se recoupent : un même jour, des heures qui se chevauchent. Si l'un des deux n'a pas
+      donné d'horaires, on prévient quand même (inconnu n'est pas « non »).</li>
+  </ol>
+  <ul>
+    <li><span class="regle">Une mairie qui n'a rien demandé n'est jamais prévenue.</span></li>
+    <li><strong>Dans les deux sens</strong> : un service publié après la recherche prévient la mairie ; une
+      recherche publiée après le service lui signale aussitôt les services déjà là.</li>
+    <li>Une même paire ne prévient qu'une fois.</li>
+    <li>La notification est <strong>sur le site</strong> : le bouton « Notifications (n) » de la mairie. Elle
+      dit le service, l'activité et les <strong>créneaux en commun</strong>. Le courriel viendra avec un
+      prestataire d'envoi.</li>
+  </ul>
+
+  <h3>7. Qui voit quoi sur la carte</h3>
+  <table class="tab">
+    <tr><th>Qui regarde</th><th>Ce qu'il voit</th></tr>
+    <tr><td>Une mairie (accueillant connecté)</td><td>Toutes les recherches des mairies ; parmi les services,
+      <strong>seulement ceux dont une zone couvre sa commune</strong>, et ceux sans zone. Ses communes : celle
+      de son compte et celles de ses recherches. La légende le rappelle.</td></tr>
+    <tr><td>Visiteur, service ambulant, modération</td><td>Tout.</td></tr>
+  </table>
+  <p>Repères : <span class="pastille p-empl"></span> emplacement précis proposé par une mairie,
+    <span class="pastille p-besoin"></span> recherche sans lieu fixé, <span class="pastille p-serv"></span>
+    service ambulant. La forme dit le sens sans la couleur.</p>
+  <p>La fiche publique d'un service montre ses zones, mais <strong>ni la liste de ses villes ni les mairies
+    prévenues</strong>, réservées à son historique.</p>
+
+  <h3>8. Les filtres de la carte</h3>
+  <table class="tab">
+    <tr><th>Filtre</th><th>Règle</th></tr>
+    <tr><td>Je cherche un service / un emplacement</td><td>Ne montrer que les services, ou que les recherches des mairies.</td></tr>
+    <tr><td>Catégorie, activité précise</td><td>« Boulangerie » plutôt que tout l'alimentaire. Une recherche de
+      mairie sans activité les accepte toutes ; une exclusion écarte.</td></tr>
+    <tr><td>Jour et heures</td><td>Les annonces présentes ce jour-là sur ces heures. Les annonces sans horaires
+      restent, sauf si l'on décoche la case prévue.</td></tr>
+    <tr><td>Électricité, eau, occupation gratuite</td><td>« Oui » ou « Oui, ou non renseigné ». Ne concerne que
+      les lieux proposés par les mairies.</td></tr>
+    <tr><td>Mairies vérifiées</td><td>Seulement les recherches des mairies au badge « vérifié ».</td></tr>
+    <tr><td>Fraîcheur</td><td>Publiées depuis moins de 7, 30 ou 90 jours.</td></tr>
+  </table>
+  <p>Les filtres actifs s'affichent en pastilles, qu'on retire d'un geste.</p>
+</section>
+
+<section>
+  <h3>9. Modération et administration</h3>
+  <ul>
+    <li><strong>Vérifier un accueillant</strong> lui donne le badge « Accueillant vérifié ». Le badge ne
+      conditionne rien.</li>
+    <li><strong>Refuser un accueillant</strong> (motif obligatoire) l'empêche de publier, retire ses recherches
+      de la carte et arrête ses notifications : c'est le recours contre quelqu'un qui publierait au nom d'une
+      commune sans en avoir le droit.</li>
+    <li><strong>Masquer une annonce</strong> (motif obligatoire) la retire de la carte ; son auteur voit le
+      motif. On peut la réafficher.</li>
+    <li><strong>Tableau des droits</strong> : régler le niveau de chaque fonction, la désactiver ; chaque
+      changement est consigné. Les lignes d'administration sont verrouillées.</li>
+    <li><strong>Rôles</strong> : utilisateur, modérateur, administrateur. On ne change pas son propre rôle et
+      on ne retire pas le dernier administrateur. Le premier administrateur se nomme en ligne de commande.</li>
+  </ul>
+
+  <h3>10. Données publiques utilisées</h3>
+  <table class="tab">
+    <tr><th>Donnée</th><th>Source</th><th>Usage</th></tr>
+    <tr><td>Fonds de carte plan et satellite</td><td>IGN — Géoplateforme (Licence Ouverte)</td><td>La carte</td></tr>
+    <tr><td>Recherche d'adresse</td><td>Base adresse nationale, via la Géoplateforme</td><td>Placer une recherche, centrer la carte</td></tr>
+    <tr><td>Référentiel des communes (34 969 communes, centre, département, population)</td><td>API Découpage
+      administratif (geo.api.gouv.fr), pris le 21 octobre 2026</td><td>Villes des zones, commune d'une mairie,
+      commune d'un point posé loin de toute adresse</td></tr>
+  </table>
+
+  <h3>11. Cadre légal et confiance</h3>
+  <div class="attention">
+    <p>Le site aide à se trouver ; il ne délivre aucune autorisation. S'installer sur le domaine public demande
+      une autorisation de la mairie (arrêté ou convention), souvent avec une redevance. Les activités
+      réglementées (alimentaire, santé…) ont des obligations que le site ne vérifie pas.</p>
+  </div>
+  <p>Cet avertissement figure sur chaque fiche et chaque formulaire de publication, avec, pour l'alimentaire
+    et la santé, un rappel propre à l'activité. Le site de test porte un bandeau violet et n'est pas
+    référencé par les moteurs de recherche.</p>
+
+  <h3>12. Ce qui n'existe pas encore</h3>
+  <ul>
+    <li>La <strong>mise en relation</strong> : candidature, invitation, messagerie, échange de coordonnées
+      accepté des deux côtés (l'événement qui rendra possible un paiement à la mise en relation).</li>
+    <li>Le <strong>courriel</strong> : confirmation d'adresse, mot de passe oublié, notification par courriel.</li>
+    <li>La vérification du <strong>SIRET</strong> par l'annuaire des entreprises, et le préremplissage de la
+      vérification des mairies par l'Annuaire de l'administration.</li>
+    <li>Les photos du véhicule, le calendrier de tournée, les modèles d'arrêté et de convention.</li>
+    <li>Le nom du site, et le choix du modèle économique.</li>
+  </ul>
+</section>
+
+<!-- ================================================================= -->
+<section class="saut">
+  <h2>Partie 2 — Notice d'utilisation</h2>
+
+  <h3>1. Lire la carte (tout le monde)</h3>
+  <p>À l'ouverture, la carte montre toutes les annonces. En haut : « Tout / Je cherche un service / Je cherche
+    un emplacement », la recherche d'une commune ou d'une adresse, la catégorie, le bouton « Filtres » et le
+    choix du fond (plan ou satellite). La légende, en bas, rappelle les repères et le nombre d'annonces
+    affichées.</p>
+  <figure><img src="images/01-carte-visiteur.jpg" alt=""><figcaption>La carte, vue sans compte, cadrée sur la Creuse.</figcaption></figure>
+  <p>Un clic sur un repère ouvre sa <strong>fiche</strong>. Pour un service : activité, disponibilités, zones
+    d'action (dessinées sur la carte), besoins ; pour une recherche de mairie : services recherchés, créneaux,
+    équipements. Les valeurs absentes disent « non renseigné ».</p>
+  <figure><img src="images/02-fiche-visiteur.jpg" alt=""><figcaption>La fiche d'un boulanger ambulant : son cercle de 20 km autour de Bourganeuf, 53 communes.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <h3>2. Mairie : s'inscrire, publier une recherche, être prévenue</h3>
+  <h4>S'inscrire</h4>
+  <ol class="etapes">
+    <li>« Se connecter » → onglet « Créer un compte » → « Un accueillant ».</li>
+    <li>Nom affiché, adresse électronique, mot de passe (12 caractères au moins).</li>
+    <li>« Vous êtes » (mairie, camping…), nom de l'organisation.</li>
+    <li><strong>Commune</strong> : taper le nom, « Chercher », choisir dans la liste. « Commune retenue »
+      confirme le choix.</li>
+    <li>Cocher « J'ai compris… » puis « Créer mon compte » : vous êtes connecté.</li>
+  </ol>
+  <figure><img src="images/03-inscription-mairie.jpg" alt=""><figcaption>L'inscription d'une mairie : la commune choisie dans le référentiel.</figcaption></figure>
+
+  <h4>Publier une recherche</h4>
+  <ol class="etapes">
+    <li>« Publier ». Donner un titre (« Un food truck le mardi midi »).</li>
+    <li>Cocher les <strong>services recherchés</strong> (aucun : tous).</li>
+    <li>« + Ajouter une plage » pour chaque <strong>créneau souhaité</strong> : jour, de, à.</li>
+    <li><strong>Le lieu</strong> : sans lieu fixé, ou un emplacement précis.</li>
+    <li><strong>Où ?</strong> : chercher l'adresse et la choisir, ou cliquer sur la carte. La commune se
+      remplit seule.</li>
+    <li>Électricité, eau, occupation gratuite, redevance, conditions : si vous les connaissez.</li>
+    <li>« Publier ».</li>
+  </ol>
+  <figure><img src="images/04-publier-recherche.jpg" alt=""><figcaption>Le formulaire : créneau du mardi, lieu placé par la recherche d'adresse.</figcaption></figure>
+  <figure><img src="images/05-recherche-publiee.jpg" alt=""><figcaption>La recherche publiée. La légende rappelle que la mairie ne voit que les services qui viennent chez elle.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <h4>Être prévenue</h4>
+  <p>Quand un service correspond, le bouton <strong>« Notifications (1) »</strong> s'allume. La notification
+    dit le service, son activité, votre recherche, et les <strong>créneaux en commun</strong>. « Voir le
+    service et sa zone » ouvre sa fiche et dessine ses zones.</p>
+  <figure><img src="images/11-notifications.jpg" alt=""><figcaption>La notification reçue par la mairie de Guéret : créneau commun le mardi de 11:00 à 14:00.</figcaption></figure>
+  <figure><img src="images/12-fiche-service.jpg" alt=""><figcaption>La fiche du service : son cercle de 15 km, Bourganeuf et sa zone dessinée.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <h4>Ce que voit une mairie</h4>
+  <p>Une mairie connectée ne voit que les services qui viennent dans sa commune, et ceux qui n'ont indiqué
+    aucune zone. Ici, le coiffeur qui ne travaille qu'à Limoges n'apparaît pas à la mairie de Guéret.</p>
+  <figure><img src="images/13-carte-mairie.jpg" alt=""><figcaption>La carte de la mairie de Guéret.</figcaption></figure>
+  <p>« Mon compte » rassemble vos recherches (« Voir la fiche » ; « Retirer mon annonce » se trouve sur la
+    fiche), la déconnexion et l'effacement du compte.</p>
+</section>
+
+<section class="saut">
+  <h3>3. Service ambulant : s'inscrire, déclarer ses zones, suivre ses demandes</h3>
+  <h4>S'inscrire</h4>
+  <p>« Se connecter » → « Créer un compte » → « Un service ambulant ». Nom affiché, adresse, mot de passe ;
+    facultatifs : nom de l'entreprise, SIRET (déclaré), activités.</p>
+
+  <h4>Proposer ses services</h4>
+  <ol class="etapes">
+    <li>« Publier ». Titre, catégorie, activité ; les questions propres à l'activité (chaîne du froid…).</li>
+    <li><strong>Où êtes-vous installé ?</strong> : chercher l'adresse ou cliquer sur la carte.</li>
+    <li><strong>Mes zones d'action</strong>, autant que nécessaire :
+      <ul>
+        <li>« + Un cercle » : le centre est votre position (un clic le déplace), réglez le rayon ; le nombre
+          de communes s'affiche ; « Ajouter ce cercle » ;</li>
+        <li>« + Une ville » : chercher la commune, la choisir ;</li>
+        <li>« + Dessiner une zone » : appuyer sur la carte et tracer le contour sans lever le doigt ; la carte
+          ne bouge pas pendant le tracé.</li>
+      </ul>
+      Chaque zone s'ajoute à la liste avec son nombre de communes, « Voir les villes », « Voir la zone » et
+      « Retirer ».</li>
+    <li><strong>Mes disponibilités</strong> : « + Ajouter une plage » (jour, de, à).</li>
+    <li>Besoins (électricité, eau, surface), description, puis « Publier ».</li>
+  </ol>
+  <figure><img src="images/06-zone-cercle.jpg" alt=""><figcaption>Le réglage d'un cercle de 15 km : 39 communes.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <figure><img src="images/07-zones-saisies.jpg" alt=""><figcaption>Trois zones : le cercle, la ville de Bourganeuf, une zone dessinée à la souris.</figcaption></figure>
+  <figure><img src="images/08-disponibilites.jpg" alt=""><figcaption>Les disponibilités : le mardi de 10:00 à 15:00.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <h4>Suivre ses demandes</h4>
+  <p>Après la publication, « Mon compte » s'ouvre sur « Demande publiée : 1 mairie prévenue ». Dans
+    <strong>« Mes demandes »</strong>, chaque demande montre le nombre de mairies prévenues, ses
+    disponibilités et, pour chaque zone, ses villes : celles dont la mairie a été prévenue sont en vert, avec
+    un lien vers sa recherche. « Voir la zone » la dessine sur la carte.</p>
+  <figure><img src="images/09-historique.jpg" alt=""><figcaption>L'historique, juste après la publication.</figcaption></figure>
+  <figure><img src="images/10-historique-villes.jpg" alt=""><figcaption>Les 39 villes du cercle ; Guéret, dont la mairie a été prévenue, en vert.</figcaption></figure>
+</section>
+
+<section class="saut">
+  <h3>4. Filtrer la carte</h3>
+  <ol class="etapes">
+    <li>Choisir une <strong>catégorie</strong> dans la barre, puis « Filtres ».</li>
+    <li>Dans le panneau : activité précise, jour et heures, électricité / eau / gratuité, mairies vérifiées,
+      date de publication.</li>
+    <li>« Voir la carte » referme le panneau. Les filtres actifs restent en pastilles ; une croix en retire
+      un ; « Tout effacer » les retire tous.</li>
+  </ol>
+  <figure><img src="images/14-filtres.jpg" alt=""><figcaption>Alimentaire, le mardi, électricité « oui ou non renseigné » : 2 annonces.</figcaption></figure>
+
+  <h3>5. Sur téléphone</h3>
+  <p>La page s'adapte : la fiche monte du bas de l'écran, les filtres prennent tout l'écran avec « Voir la
+    carte » toujours à portée, le tracé d'une zone se fait au doigt (le panneau se replie le temps du
+    tracé).</p>
+  <figure class="duo">
+    <div><img src="images/17-mobile-carte.jpg" alt=""><figcaption>La carte.</figcaption></div>
+    <div><img src="images/18-mobile-fiche.jpg" alt=""><figcaption>Une fiche.</figcaption></div>
+    <div><img src="images/19-mobile-filtres.jpg" alt=""><figcaption>Les filtres.</figcaption></div>
+  </figure>
+</section>
+
+<section class="saut">
+  <h3>6. Modération et administration</h3>
+  <p>Les modérateurs et administrateurs ont un bouton <strong>« Console »</strong>.</p>
+  <ul>
+    <li><strong>Accueillants à vérifier (badge)</strong> : « Vérifié » donne le badge ; « Refuser », avec un
+      motif, bloque le compte et retire ses recherches.</li>
+    <li>Sur la fiche de toute annonce, un bloc <strong>Modération</strong> : « Masquer » (motif obligatoire)
+      ou « Réafficher ».</li>
+    <li><strong>Tableau des droits</strong> (administrateur) : le niveau de chaque fonction et la case
+      « Active ».</li>
+    <li><strong>Comptes et rôles</strong> (administrateur).</li>
+  </ul>
+  <figure><img src="images/15-console.jpg" alt=""><figcaption>La console : les accueillants à vérifier.</figcaption></figure>
+  <figure><img src="images/16-tableau-droits.jpg" alt=""><figcaption>Le tableau des droits : un niveau et une case « Active » par fonction.</figcaption></figure>
+  <div class="encadre">Le premier administrateur se nomme depuis le serveur :
+    <code>python3 -m ambulants.cli promouvoir "Nom affiché" administrateur</code> — sur le NAS, voir
+    <code>SYNOLOGY.md</code>, « Devenir administrateur ».</div>
+</section>
+
+</body>
+</html>
