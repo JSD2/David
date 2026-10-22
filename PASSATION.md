@@ -38,6 +38,35 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 
 ---
 
+## Livraison 5 — une mairie ne voit que les services qui viennent chez elle (22 octobre 2026)
+
+Demande du porteur du projet : « pour les mairies qui ne correspondent pas
+à une zone ou un endroit demandé par le commerce ambulant, le commerce
+n'apparaît pas ; si le commerce n'a pas mis de lieu ni de zone, il
+apparaît ».
+
+- **Carte d'une mairie** (tout accueillant connecté, hors modération) :
+  les services dont une zone couvre l'une de ses communes, et ceux sans
+  zone. Ses communes : celle de son compte et celles de ses recherches
+  publiées. Filtré **côté serveur** (`/api/carte` et la page préchargée),
+  pas seulement à l'écran.
+- **Visiteurs, commerçants, modération** : tout, comme avant (rien demandé
+  à leur sujet).
+- **Zones facultatives** : un service sans zone est visible de toutes les
+  mairies ; **choix fait ici, à confirmer** : il n'en prévient aucune (on
+  ne sait pas où il va ; prévenir toutes les mairies de France qui
+  cherchent un food truck serait du bruit).
+- **Commune à l'inscription** d'une mairie : choisie dans le référentiel
+  (bouton « Chercher ») ; à défaut, le nom seul suffit s'il n'existe
+  qu'une commune de ce nom. Sans commune connue, une mairie ne voit que les
+  services sans zone, jusqu'à sa première recherche publiée.
+
+Vérifié : 114 essais ; dans Chromium, trois services (Guéret, Limoges, sans
+zone) : un visiteur en voit 3, la mairie de Guéret inscrite par l'écran en
+voit 2, avant comme après rechargement.
+
+---
+
 ## Correctif du 22 octobre — « j'ai créé une demande de mairie mais le point a disparu »
 
 Reproduit ici : en posant le point **d'un clic sur la carte** loin des

@@ -78,4 +78,7 @@ Préparation : une base de test, un compte administrateur posé par
 | 6.10 | Une mairie de la zone qui n'a rien publié | Aucune notification |
 | 6.11 | Créneaux sans jour commun (mairie lundi, service mardi) | Pas de notification |
 | 6.12 | Fiche publique d'un service, vue sans compte | Les zones sont visibles ; ni la liste des villes ni les mairies prévenues |
+| 6.13 | Un service avec une zone sur Limoges, un sur Guéret, un sans zone ; la mairie de Guéret connectée | Elle voit le service de Guéret et celui sans zone, pas celui de Limoges ; la légende le dit |
+| 6.14 | Les mêmes, vus sans compte | Les trois services |
+| 6.15 | Commerçant : publier sans aucune zone | « visible de toutes les mairies, aucune n'est prévenue » |
 

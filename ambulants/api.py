@@ -385,9 +385,29 @@ class Gestionnaire(BaseHTTPRequestHandler):
 
     # -- la page et ses fichiers -------------------------------------------
 
+    def _carte_du_lecteur(self):
+        """(corps, corps compressé ou None, etag) de la carte pour qui regarde.
+
+        Une mairie (un accueillant) ne voit que les services qui viennent
+        chez elle — une zone couvre sa commune — et ceux qui n'ont pas de
+        zone (règle du 22 octobre). Les autres lecteurs, visiteurs compris,
+        voient tout : la réponse commune, gardée en mémoire et compressée.
+        """
+        _, corps, serre, etag = self.app.carte()
+        c = self.compte
+        if c is None or not c.est_accueillant or droits.rang_de(c) >= droits.RANG["moderateur"]:
+            return corps, serre, etag
+        annonces = self.app.store.annonces
+        visibles = annonces.demandes_visibles(annonces.communes_de_l_accueillant(c))
+        points = [p for p in json.loads(corps.decode("utf-8"))["annonces"]
+                  if p["sens"] != "demande" or p["id"] in visibles]
+        corps = json.dumps({"annonces": points, "filtre": "mairie"}, ensure_ascii=False,
+                           separators=(",", ":")).encode("utf-8")
+        return corps, None, '"' + hashlib.sha256(corps).hexdigest()[:20] + '"'
+
     def page(self) -> None:
         """La page de la carte, avec les annonces et les listes dedans."""
-        _, corps_carte, _, _ = self.app.carte()
+        corps_carte, _, _ = self._carte_du_lecteur()
         prechargees = {
             "carte": json.loads(corps_carte.decode("utf-8")),
             "categories": cat.pour_le_navigateur(),
@@ -438,7 +458,7 @@ class Gestionnaire(BaseHTTPRequestHandler):
                     "schema": self.app.store.etat_schema()})
 
     def api_carte(self) -> None:
-        _, corps, serre, etag = self.app.carte()
+        corps, serre, etag = self._carte_du_lecteur()
         self._envoyer(corps, "application/json; charset=utf-8", cache="no-cache",
                       etag=etag, gzip_pret=serre)
 
@@ -484,11 +504,25 @@ class Gestionnaire(BaseHTTPRequestHandler):
         if d.get("conditions_acceptees") is not True:
             raise Refus(400, "Il faut accepter les conditions d'utilisation.")
         cats = d.get("categories") if isinstance(d.get("categories"), list) else []
+        # La commune d'une mairie décide des services qu'elle voit : il faut
+        # son code INSEE. Celui que la page a choisi dans le référentiel, ou
+        # à défaut la seule commune de ce nom (« Guéret ») — pas de choix au
+        # hasard entre les quarante « Saint-Julien ».
+        communes = self.app.store.communes
+        code = d.get("code_insee") or ""
+        if not communes.par_code(code):
+            code = ""
+            nom = str(d.get("commune") or "").strip()
+            if nom:
+                memes = [c for c in communes.chercher(nom, limite=50)
+                         if c["nom"].lower() == nom.lower()]
+                if len(memes) == 1:
+                    code = memes[0]["code_insee"]
         compte = self.app.store.comptes.creer(
             d.get("email", ""), d.get("pseudo", ""), d.get("mot_de_passe", ""),
             d.get("type_compte", ""), organisation=d.get("organisation") or "",
             nature=d.get("nature") or "", commune=d.get("commune") or "",
-            code_insee=d.get("code_insee") or "", siret=d.get("siret") or "",
+            code_insee=code, siret=d.get("siret") or "",
             categories=cats, presentation=d.get("presentation") or "")
         jeton = self.app.store.comptes.ouvrir_session(compte.identifiant)
         self._compte, self._compte_lu = compte, True

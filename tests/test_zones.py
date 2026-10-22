@@ -104,10 +104,13 @@ def test_zones_refusees(store, zone, motif):
         store.zones.lire(zone)
 
 
-def test_une_demande_sans_zone_est_refusee(store):
-    c = creer_compte(store, "Paul")
-    with pytest.raises(AnnonceRefusee, match="au moins une zone"):
-        store.annonces.publier_demande(c, dict(DEMANDE, zones=[]))
+def test_une_demande_sans_zone_est_acceptee_et_ne_previent_personne(store):
+    """Règle du 22 octobre : sans zone, visible de toutes les mairies,
+    mais aucune n'est prévenue (on ne sait pas où le service va)."""
+    mairie, _ = _mairie(store)
+    f = store.annonces.publier_demande(creer_compte(store, "Paul"), dict(DEMANDE, zones=[]))
+    assert f["zones"] == [] and f["mairies_prevenues"] == 0
+    assert _non_lues(store, mairie) == 0
 
 
 # --------------------------------------------------------------------------
@@ -275,4 +278,66 @@ def test_recherche_publiee_sans_commune_ni_code(client, store):
     statut, fiche, _ = client.post("/api/emplacements", dict(EMPLACEMENT, commune="", code_insee=""))
     assert statut == 201 and fiche["commune"] == "Guéret"
     assert [a["id"] for a in client.get("/api/carte")[1]["annonces"]] == [fiche["id"]]
+
+
+# --------------------------------------------------------------------------
+# Ce qu'une mairie voit sur la carte (règle du 22 octobre)
+# --------------------------------------------------------------------------
+
+def _ids(client):
+    return {a["id"] for a in client.get("/api/carte")[1]["annonces"] if a["sens"] == "demande"}
+
+
+def test_une_mairie_ne_voit_que_les_services_qui_viennent_chez_elle(client, nouveau_client, store):
+    paul = connecter(nouveau_client(), creer_compte(store, "Paul"))
+    chez_elle = paul.post("/api/demandes", DEMANDE)[1]["id"]
+    ailleurs = paul.post("/api/demandes", dict(
+        DEMANDE, zones=[{"genre": "ville", "code_insee": LIMOGES}]))[1]["id"]
+    partout = paul.post("/api/demandes", dict(DEMANDE, zones=[]))[1]["id"]
+
+    # La mairie de Guéret, sa commune connue dès l'inscription.
+    statut, _, _ = client.post("/api/comptes", {
+        "type_compte": "accueillant", "pseudo": "Mairie de Guéret", "email": "m@gueret.fr",
+        "mot_de_passe": "un-mot-de-passe-assez-long", "nature": "mairie",
+        "organisation": "Mairie de Guéret", "commune": "Guéret", "conditions_acceptees": True})
+    assert statut == 201
+    assert _ids(client) == {chez_elle, partout}
+    # La page arrive déjà filtrée.
+    page = client.get("/")[1].decode("utf-8")
+    assert chez_elle in page and partout in page and ailleurs not in page
+
+    # Les autres voient tout : visiteur, commerçant, modération.
+    assert _ids(nouveau_client()) == {chez_elle, ailleurs, partout}
+    assert _ids(paul) == {chez_elle, ailleurs, partout}
+    modo = connecter(nouveau_client(), creer_compte(store, "Modo", "accueillant", role="moderateur"))
+    assert _ids(modo) == {chez_elle, ailleurs, partout}
+
+
+def test_une_mairie_sans_commune_connue_ne_voit_que_les_services_sans_zone(client, nouveau_client, store):
+    paul = connecter(nouveau_client(), creer_compte(store, "Paul"))
+    paul.post("/api/demandes", DEMANDE)
+    partout = paul.post("/api/demandes", dict(DEMANDE, zones=[]))[1]["id"]
+    connecter(client, creer_compte(store, "Sanscommune", "accueillant"))
+    assert _ids(client) == {partout}
+
+
+def test_publier_une_recherche_ajoute_sa_commune(client, nouveau_client, store):
+    paul = connecter(nouveau_client(), creer_compte(store, "Paul"))
+    chez_elle = paul.post("/api/demandes", DEMANDE)[1]["id"]
+    connecter(client, creer_compte(store, "Gueret", "accueillant"))
+    assert chez_elle not in _ids(client)
+    client.post("/api/emplacements", EMPLACEMENT)
+    assert chez_elle in _ids(client)
+
+
+def test_commune_de_l_inscription(client, nouveau_client, store):
+    base = {"type_compte": "accueillant", "mot_de_passe": "un-mot-de-passe-assez-long",
+            "nature": "mairie", "conditions_acceptees": True}
+    # Le code choisi dans le référentiel prime ; un code inconnu est écarté.
+    _, r, _ = client.post("/api/comptes", dict(base, pseudo="Mairie A", email="a@x.fr", organisation="Mairie A",
+                                               commune="Peu importe", code_insee=LIMOGES))
+    assert r["compte"]["code_insee"] == LIMOGES
+    _, r, _ = nouveau_client().post("/api/comptes", dict(base, pseudo="Mairie B", email="b@x.fr",
+                                                         organisation="Mairie B", code_insee="99999"))
+    assert r["compte"]["code_insee"] is None
 

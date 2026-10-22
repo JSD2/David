@@ -322,6 +322,31 @@ class DepotAnnonces:
                 "entreprise_verifiee": bool(l["siret_verifie"])})
         return points
 
+    def communes_de_l_accueillant(self, compte) -> set:
+        """Les communes d'un accueillant : celle de son compte, et celles de
+        ses recherches publiées."""
+        codes = {compte.code_insee} if compte.code_insee else set()
+        codes.update(l["code_insee"] for l in self._conn.execute(
+            "SELECT DISTINCT code_insee FROM emplacements WHERE compte_id = ? "
+            "AND etat = 'publie' AND code_insee IS NOT NULL", (compte.identifiant,)))
+        return codes
+
+    def demandes_visibles(self, codes_insee) -> set:
+        """Les demandes qu'une mairie voit sur la carte (règle du 22
+        octobre) : celles dont une zone couvre l'une de ses communes, et
+        celles qui n'ont indiqué aucune zone. Une mairie hors de toutes les
+        zones d'un service ne le voit pas."""
+        visibles = {l["identifiant"] for l in self._conn.execute(
+            "SELECT d.identifiant FROM demandes d WHERE NOT EXISTS "
+            "(SELECT 1 FROM zones z WHERE z.demande_id = d.identifiant)")}
+        codes = sorted(c for c in codes_insee if c)
+        if codes:
+            marques = ",".join("?" * len(codes))
+            visibles.update(l["demande_id"] for l in self._conn.execute(
+                "SELECT DISTINCT z.demande_id FROM zones z JOIN zone_communes zc "
+                f"ON zc.zone_id = z.identifiant WHERE zc.code_insee IN ({marques})", codes))
+        return visibles
+
     def fiche(self, identifiant: str, *, voir_masquee: bool = False,
               lecteur_id: str = "") -> Optional[dict]:
         """La fiche complète. Une annonce retirée ou masquée ne se lit que

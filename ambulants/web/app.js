@@ -146,13 +146,15 @@
       m.on('click', () => ouvrirFiche(a.id));
       m.addTo(calque);
     }
-    document.getElementById('compte-annonces').textContent = `${n} annonce${n > 1 ? 's' : ''} affichée${n > 1 ? 's' : ''}`;
+    document.getElementById('compte-annonces').textContent = `${n} annonce${n > 1 ? 's' : ''} affichée${n > 1 ? 's' : ''}`
+      + (etat.filtreMairie ? ' · services : ceux qui viennent dans votre commune, et ceux sans zone' : '');
   }
 
   async function rechargerCarte() {
     try {
       const r = await api('/api/carte');
       etat.annonces = r.annonces;
+      etat.filtreMairie = r.filtre === 'mairie';
       dessiner();
     } catch (_) { /* la carte déjà dessinée reste */ }
   }
@@ -262,7 +264,7 @@
       fait('Zones d’action', f.zones.length
         ? el('span', {}, f.zones.map(z => `${z.libelle} (${z.nombre_communes} commune${z.nombre_communes > 1 ? 's' : ''})`).join(', '), ' ',
           el('button', { type: 'button', onclick: () => afficherZones(f.zones) }, 'Voir sur la carte'))
-        : ouInconnu(f.rayon_km, 'km autour du point'));
+        : (f.rayon_km ? `${f.rayon_km} km autour du point` : 'aucune : visible de toutes les mairies'));
       fait('Électricité', triEtat(f.besoin_electricite));
       fait('Eau', triEtat(f.besoin_eau));
       fait('Surface', ouInconnu(f.surface_m2, 'm²'));
@@ -336,6 +338,11 @@
   }
 
   function appliquerSession(s) {
+    // Une mairie ne voit pas la même carte qu'un visiteur (seulement les
+    // services qui viennent chez elle) : changer de compte la recharge.
+    const avant = etat.compte ? etat.compte.identifiant : null;
+    const apres = s.compte ? s.compte.identifiant : null;
+    if (etat.droits && avant !== apres) rechargerCarte();
     etat.compte = s.compte;
     etat.droits = s.droits;
     const bc = document.getElementById('bouton-compte');
@@ -386,7 +393,24 @@
     const mdp = el('input', { type: 'password', required: true, minlength: '12', autocomplete: 'new-password' });
     const nature = el('select', {}, ...D.natures.map(n => el('option', { value: n.cle }, n.libelle)));
     const organisation = el('input', { type: 'text', maxlength: '120', placeholder: 'Mairie de Saint-Julien' });
-    const commune = el('input', { type: 'text', maxlength: '120' });
+    const commune = el('input', { type: 'search', maxlength: '120', placeholder: 'Nom de votre commune' });
+    // La commune d'une mairie décide des services qu'elle voit sur la carte :
+    // on la prend dans le référentiel, pour avoir son code INSEE.
+    const choixCommune = { insee: '' };
+    const communesTrouvees = el('div', { class: 'resultats-position' });
+    commune.addEventListener('input', () => { choixCommune.insee = ''; });
+    const chercherCommune = async () => {
+      communesTrouvees.replaceChildren();
+      try {
+        const r = await api(`/api/communes?q=${encodeURIComponent(commune.value)}`);
+        r.communes.forEach(c => communesTrouvees.append(el('button', { type: 'button', onclick: () => {
+          commune.value = c.nom; choixCommune.insee = c.code_insee; communesTrouvees.replaceChildren(
+            el('span', { class: 'aide' }, `Commune retenue : ${c.nom} (${c.departement})`));
+        } }, `${c.nom} (${c.departement})`)));
+        if (!r.communes.length) communesTrouvees.append(el('span', { class: 'aide' }, 'Aucune commune de ce nom.'));
+      } catch (_) { /* le serveur cherchera par le nom */ }
+    };
+    commune.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); chercherCommune(); } });
     const siret = el('input', { type: 'text', inputmode: 'numeric', maxlength: '17', placeholder: '14 chiffres' });
     const cases = CATEGORIES.map(c => el('input', { type: 'checkbox', value: c.cle }));
     const presentation = el('textarea', { rows: '3', maxlength: '2000' });
@@ -396,7 +420,9 @@
       if (type.valeur === 'accueillant') {
         blocType.replaceChildren(
           champ('Vous êtes', nature), champ('Nom de l’organisation', organisation),
-          champ('Commune', commune),
+          champ('Commune', el('div', { class: 'cases' }, commune, el('button', { type: 'button', onclick: chercherCommune }, 'Chercher')),
+            'Les services ambulants qui viennent dans votre commune vous seront montrés sur la carte.'),
+          communesTrouvees,
           el('p', { class: 'info' }, 'Vous pourrez publier dès votre inscription. La modération peut ensuite '
             + 'vérifier votre compte (badge « Accueillant vérifié ») : une adresse électronique officielle, '
             + 'celle de l’Annuaire de l’administration, l’y aide.'));
@@ -420,7 +446,8 @@
         appliquerSession(await api('/api/comptes', {
           type_compte: type.valeur, pseudo: pseudo.value, email: email.value, mot_de_passe: mdp.value,
           nature: type.valeur === 'accueillant' ? nature.value : '', organisation: organisation.value,
-          commune: commune.value, siret: type.valeur === 'commercant' ? siret.value : '',
+          commune: commune.value, code_insee: type.valeur === 'accueillant' ? choixCommune.insee : '',
+          siret: type.valeur === 'commercant' ? siret.value : '',
           categories: cases.filter(c => c.checked).map(c => c.value),
           presentation: presentation.value, conditions_acceptees: conditions.checked,
         }));
@@ -485,6 +512,7 @@
       el('div', { class: 'aide' }, `${libelleActivite(d.activite)} · publiée le ${d.date_creation.slice(0, 10)} · `,
         el('strong', {}, `${d.nombre_mairies_prevenues} mairie${d.nombre_mairies_prevenues > 1 ? 's' : ''} prévenue${d.nombre_mairies_prevenues > 1 ? 's' : ''}`)),
       el('div', { class: 'aide' }, 'Disponibilités : ', textePlages(d.plages)),
+      d.zones.length ? null : el('p', { class: 'aide' }, 'Aucune zone : visible de toutes les mairies, aucune prévenue.'),
       ...d.zones.map(z => el('div', { class: 'zone-historique' },
         el('div', { class: 'cases' }, el('span', {}, el('strong', {}, z.libelle), ` — ${z.nombre_communes} commune${z.nombre_communes > 1 ? 's' : ''}`),
           el('button', { type: 'button', onclick: () => afficherZones([z]) }, 'Voir la zone')),
@@ -744,6 +772,7 @@
             calqueZones.removeLayer(z.couche); zones.splice(i, 1); redessinerListe();
           } }, 'Retirer')))));
       rappel.hidden = zones.length > 0;
+      rappel.textContent = 'Aucune zone : visible de toutes les mairies, aucune prévenue.';
     }
 
     async function ajouter(envoi) {
@@ -879,7 +908,8 @@
     }
 
     const bloc = el('fieldset', {}, el('legend', {}, 'Mes zones d’action'),
-      el('p', { class: 'aide' }, 'Où allez-vous ? Une ou plusieurs zones : une ville, un cercle autour d’un point, ou un contour dessiné sur la carte. Les mairies de ces zones qui recherchent votre activité seront prévenues. Une commune compte si son centre est dans la zone.'),
+      el('p', { class: 'aide' }, 'Où allez-vous ? Une ou plusieurs zones : une ville, un cercle autour d’un point, ou un contour dessiné sur la carte. Seules les mairies de ces zones verront votre service, et celles qui recherchent votre activité seront prévenues. Une commune compte si son centre est dans la zone.'),
+      el('p', { class: 'aide' }, 'Facultatif : sans zone, votre service est visible de toutes les mairies, mais aucune n’est prévenue.'),
       rappel, liste, outil,
       el('div', { class: 'cases' },
         el('button', { type: 'button', onclick: outilVille }, '+ Une ville'),
@@ -935,9 +965,10 @@
         pos.nettoyer();
         await rechargerCarte();
         const n = r.mairies_prevenues;
-        await ouvrirMonCompte(n
-          ? `Demande publiée : ${n} mairie${n > 1 ? 's' : ''} prévenue${n > 1 ? 's' : ''}.`
-          : 'Demande publiée. Aucune mairie de vos zones ne recherche votre activité pour l’instant : elles seront prévenues dès qu’elles le feront.');
+        await ouvrirMonCompte(!r.zones.length
+          ? 'Demande publiée sans zone : visible de toutes les mairies, aucune n’est prévenue. Ajoutez une zone pour prévenir celles de votre secteur.'
+          : n ? `Demande publiée : ${n} mairie${n > 1 ? 's' : ''} prévenue${n > 1 ? 's' : ''}.`
+            : 'Demande publiée. Aucune mairie de vos zones ne recherche votre activité pour l’instant : elles seront prévenues dès qu’elles le feront.');
       } catch (err) { message.textContent = err.message; }
     } }, champ('Titre', titre), champ('Catégorie', categorie), champ('Activité', activite), champsBloc, avert,
     pos.bloc, champ('Commune', commune), zones.bloc, plages.bloc,

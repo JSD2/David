@@ -81,8 +81,12 @@ class DepotZones:
                 "communes": self._store.communes.dans_polygone(points)}
 
     def lire_toutes(self, brutes) -> List[dict]:
-        if not isinstance(brutes, list) or not brutes:
-            raise ZoneRefusee("Indiquer au moins une zone : une ville, un cercle ou un dessin.")
+        """Aucune zone est permis (décision du 22 octobre) : le service est
+        alors visible de toutes les mairies, mais n'en prévient aucune."""
+        if brutes is None or brutes == []:
+            return []
+        if not isinstance(brutes, list):
+            raise ZoneRefusee("Les zones sont illisibles.")
         if len(brutes) > ZONES_MAX:
             raise ZoneRefusee(f"Au plus {ZONES_MAX} zones par demande.")
         return [self.lire(b) for b in brutes]
