@@ -230,7 +230,14 @@
     const age = lier(el('select', {}, ...[[0, 'Toutes dates'], [7, 'Moins de 7 jours'], [30, 'Moins de 30 jours'], [90, 'Moins de 90 jours']]
       .map(([v, l]) => el('option', { value: String(v), selected: v === f.ageJours }, l))), 'ageJours', c => +c.value);
 
-    panneauFiltres.replaceChildren(el('div', { class: 'grille-filtres' },
+    // L'en-tête et sa croix restent en haut, visibles même sans avoir rien
+    // choisi : sur téléphone le panneau couvre tout l'écran, et « Voir la
+    // carte », en bas, peut tomber sous la barre du navigateur.
+    panneauFiltres.replaceChildren(
+    el('div', { class: 'entete-filtres' }, el('strong', {}, 'Filtres'),
+      el('button', { type: 'button', class: 'fermer-filtres', 'aria-label': 'Fermer les filtres',
+        onclick: () => basculerFiltres(false) }, '× Fermer')),
+    el('div', { class: 'grille-filtres' },
       el('fieldset', {}, el('legend', {}, 'Activité'),
         el('label', {}, 'Catégorie', categorie),
         el('label', {}, 'Activité précise', activite)),
@@ -262,6 +269,9 @@
   boutonFiltres.addEventListener('click', () => {
     if (panneauFiltres.hidden) construireFiltres();
     basculerFiltres(panneauFiltres.hidden);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panneauFiltres.hidden) { basculerFiltres(false); boutonFiltres.focus(); }
   });
 
   carte.on('click', (e) => {

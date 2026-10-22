@@ -38,6 +38,17 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 
 ---
 
+## Correctif du 22 octobre — fermer les filtres sur téléphone sans rien choisir
+
+Question du porteur du projet : comment clore la fenêtre de filtres si l'on
+n'a rien choisi ? Seul « Voir la carte », en bas du panneau, le refermait.
+Ajoutés : un en-tête « Filtres » avec « × Fermer », collé en haut pendant le
+défilement, et la touche Échap. Vérifié sur un téléphone simulé (390 px) :
+la croix reste à 10 px du haut après défilement, ferme le panneau ; Échap
+aussi.
+
+---
+
 ## Livraison 7 — spécification fonctionnelle et notice en PDF (22 octobre 2026)
 
 `docs/notice/notice-services-ambulants.pdf` (21 pages) : spécification

@@ -105,6 +105,9 @@ button.lien { border: 0; padding: 0; min-height: 0; background: none; color: var
 #pastilles:empty { display: none; }
 .pastille-filtre { min-height: 30px; padding: 0 10px; border-radius: 999px; font-size: 13px; background: #eff6ff; border-color: #93c5fd; }
 #panneau-filtres { padding: 10px 16px 12px; border-bottom: 1px solid var(--bord); background: #fafafa; max-height: 60vh; overflow-y: auto; }
+.entete-filtres { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.entete-filtres strong { font-size: 16px; }
+.fermer-filtres { font-weight: 600; }
 .grille-filtres { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px; }
 .grille-filtres label { display: grid; gap: 3px; font-size: 14px; margin: 4px 0; }
 .grille-filtres label.case { display: flex; gap: 8px; align-items: center; }
@@ -115,6 +118,7 @@ button.lien { border: 0; padding: 0; min-height: 0; background: none; color: var
   /* Sur téléphone, les filtres prennent tout l'écran le temps du réglage,
      plutôt que d'écraser la carte ; « Voir la carte » reste à portée. */
   #panneau-filtres { position: fixed; inset: 0; z-index: 1200; max-height: none; padding-bottom: 0; background: #fff; }
+  .entete-filtres { position: sticky; top: -10px; z-index: 1; background: #fff; padding: 10px 0 8px; margin-top: -10px; border-bottom: 1px solid var(--bord); }
   #panneau-filtres > .cases { position: sticky; bottom: 0; background: #fff; padding: 10px 0 14px; border-top: 1px solid var(--bord); }
   #panneau-filtres > .cases button { flex: 1; }
   #principal { flex-direction: column; }

@@ -94,4 +94,5 @@ Préparation : une base de test, un compte administrateur posé par
 | 7.6 | Publiée « Moins de 7 jours » | Les annonces plus anciennes disparaissent |
 | 7.7 | Retirer une pastille d'un geste ; « Tout effacer » | Le filtre correspondant se lève ; tout revient |
 | 7.8 | Sur téléphone, « Filtres » | Le panneau prend l'écran, catégorie comprise ; « Voir la carte » reste en bas |
+| 7.8 bis | Sur téléphone, ouvrir « Filtres » sans rien choisir, faire défiler, toucher « × Fermer » | La croix reste en haut pendant le défilement ; le panneau se ferme ; Échap le ferme aussi sur ordinateur |
 | 7.9 | Mairie : publier avec « Occupation gratuite » Oui | La fiche dit « Occupation gratuite : Oui » ; sans réponse, « non renseigné » |
