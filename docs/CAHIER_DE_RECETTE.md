@@ -32,8 +32,8 @@ Préparation : une base de test, un compte administrateur posé par
 
 | # | Geste | Attendu |
 | --- | --- | --- |
-| 3.1 | Créer un compte accueillant (mairie) | Compte créé, connecté, « En attente de vérification » |
-| 3.2 | Avec ce compte, cliquer « Publier » | Message : le compte attend sa vérification |
+| 3.1 | Créer un compte accueillant (mairie) | Compte créé et connecté ; « Mon compte » dit « Pas encore vérifié » |
+| 3.2 | Avec ce compte, cliquer « Publier » | Le formulaire s'ouvre : on publie sans attendre ; la fiche n'a pas le badge « Accueillant vérifié » |
 | 3.3 | Créer un compte commerçant avec un SIRET faux (14 chiffres, clé fausse) | Refus : SIRET non valide |
 | 3.4 | Le même avec un SIRET valide | Compte créé ; le SIRET est « déclaré », aucun badge « entreprise vérifiée » |
 | 3.5 | Se déconnecter, se reconnecter avec un mauvais mot de passe | « Adresse ou mot de passe incorrect » |
@@ -43,7 +43,8 @@ Préparation : une base de test, un compte administrateur posé par
 
 | # | Geste | Attendu |
 | --- | --- | --- |
-| 4.1 | Administrateur : Console → « Accueillants à vérifier » → « Vérifié » | Le compte disparaît de la liste |
+| 4.1 | Administrateur : Console → « Accueillants à vérifier (badge) » → « Vérifié » | Le compte disparaît de la liste ; ses fiches portent le badge « Accueillant vérifié » |
+| 4.1 bis | « Refuser » un accueillant, avec un motif | Ses recherches quittent la carte ; « Publier » lui dit que la modération a refusé le compte, avec le motif |
 | 4.2 | Accueillant vérifié : publier un lieu précis, placé par recherche d'adresse | La fiche s'ouvre ; badge « Accueillant vérifié » ; le repère est sur la carte |
 | 4.3 | Publier un « besoin sans lieu fixé » | Losange violet ; pas d'adresse sur la fiche |
 | 4.4 | Commerçant : publier une demande « Alimentaire / Food truck », rayon 40 km | Cercle de 40 km pendant la saisie ; fiche avec l'avertissement alimentaire |
@@ -65,7 +66,7 @@ Préparation : une base de test, un compte administrateur posé par
 
 | # | Geste | Attendu |
 | --- | --- | --- |
-| 6.1 | Mairie vérifiée : « Publier » → recherche « Alimentaire », créneau mardi 11:00–14:00, commune placée par la recherche d'adresse | Fiche publiée ; message « vous serez prévenu… » (ou le nombre de services déjà là) |
+| 6.1 | Mairie : « Publier » → recherche « Alimentaire », créneau mardi 11:00–14:00, commune placée par la recherche d'adresse | Fiche publiée ; message « vous serez prévenu… » (ou le nombre de services déjà là) |
 | 6.2 | Commerçant : « Publier » → position, puis « + Un cercle » de 15 km | Cercle en pointillé pendant le réglage ; le nombre de communes s'affiche ; « Ajouter ce cercle » l'ajoute à la liste |
 | 6.3 | « + Une ville » → « Bourganeuf » | La ville s'ajoute : 1 commune |
 | 6.4 | « + Dessiner une zone » → tracer un contour sans lever le doigt | La carte ne bouge pas pendant le tracé ; la zone s'ajoute avec son nombre de communes |

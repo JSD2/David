@@ -8,7 +8,8 @@ deux on regarde ; chacun peut prendre l'initiative.
 
 **Qui publie quoi** est tenu ici *et* par le tableau des droits : le
 tableau dit si la fonction est ouverte et à quel niveau ; ce module refuse
-qu'un commerçant publie un emplacement, ou qu'un accueillant non vérifié
+qu'un commerçant publie un emplacement, ou qu'un accueillant refusé par la
+modération (il parlait au nom d'une commune sans en avoir le droit)
 publie quoi que ce soit au nom de son organisation.
 
 **Ce qu'on ne sait pas reste inconnu.** Électricité, eau, redevance,
@@ -149,10 +150,10 @@ class DepotAnnonces:
     def publier_emplacement(self, compte, donnees: dict) -> dict:
         if not compte.est_accueillant:
             raise AnnonceRefusee("Seul un compte accueillant publie un emplacement.")
-        if not compte.accueillant_verifie:
+        if compte.accueillant_refuse:
             raise AnnonceRefusee(
-                "Votre compte attend sa vérification par la modération : "
-                "vous pourrez publier dès qu'il sera vérifié.")
+                "La modération a refusé ce compte : il ne peut pas publier. "
+                f"Motif : {compte.verification_motif or 'non précisé'}.")
         genre = donnees.get("genre")
         if genre not in GENRES:
             raise AnnonceRefusee("Dire s'il s'agit d'un lieu précis ou d'un besoin sans lieu fixé.")
@@ -295,7 +296,8 @@ class DepotAnnonces:
                 "e.longitude, e.jours, e.activites_souhaitees, c.organisation, "
                 "c.verification FROM emplacements e JOIN comptes c "
                 "ON c.identifiant = e.compte_id WHERE e.etat = 'publie' "
-                "AND c.etat = 'actif' AND c.verification = 'verifie' ORDER BY e.date_creation DESC"):
+                "AND c.etat = 'actif' AND COALESCE(c.verification, '') != 'refuse' "
+                "ORDER BY e.date_creation DESC"):
             points.append({
                 "id": l["identifiant"], "sens": "emplacement", "genre": l["genre"],
                 "titre": l["titre"], "commune": l["commune"],

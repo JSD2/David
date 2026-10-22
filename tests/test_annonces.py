@@ -7,9 +7,20 @@ from ambulants import categories as cat
 from conftest import DEMANDE, EMPLACEMENT, creer_compte
 
 
-def test_un_accueillant_non_verifie_ne_publie_pas(store):
+def test_un_accueillant_publie_des_son_inscription(store):
+    """Décision du 22 octobre : pas d'attente de vérification."""
     a = creer_compte(store, "Lussac", "accueillant")
-    with pytest.raises(AnnonceRefusee, match="vérification"):
+    f = store.annonces.publier_emplacement(a, EMPLACEMENT)
+    assert f["auteur"]["verifie"] is False  # publiée, mais sans le badge
+    assert [p["id"] for p in store.annonces.carte()] == [f["id"]]
+    assert store.annonces.carte()[0]["verifie"] is False
+
+
+def test_un_accueillant_refuse_ne_publie_plus(store):
+    a = creer_compte(store, "Lussac", "accueillant")
+    a = store.comptes.decider_verification(a.identifiant, "refuse", par="mod",
+                                           motif="Pas la mairie")
+    with pytest.raises(AnnonceRefusee, match="Pas la mairie"):
         store.annonces.publier_emplacement(a, EMPLACEMENT)
 
 

@@ -499,11 +499,11 @@ class Gestionnaire(BaseHTTPRequestHandler):
     # -- publier ------------------------------------------------------------
 
     def api_publier_emplacement(self) -> None:
-        if not self.compte.accueillant_verifie:
+        if self.compte.accueillant_refuse:
             # Le tableau dit que la fonction est ouverte aux accueillants ;
-            # la vérification, elle, est propre au compte.
-            raise Refus(403, "Votre compte attend sa vérification par la modération : "
-                             "vous pourrez publier dès qu'il sera vérifié.")
+            # le refus de la modération, lui, est propre au compte.
+            raise Refus(403, "La modération a refusé ce compte : il ne peut pas publier. "
+                             f"Motif : {self.compte.verification_motif or 'non précisé'}.")
         self._json(self.app.store.annonces.publier_emplacement(self.compte, self._corps()), 201)
 
     def api_publier_demande(self) -> None:

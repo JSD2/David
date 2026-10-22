@@ -102,7 +102,7 @@ FONCTIONNALITES = (
        "compte", plancher="compte", pour="commercant"),
 
     _F("publier_emplacement", "Publier",
-       "Publier une recherche de service, avec ou sans lieu (accueillant vérifié)",
+       "Publier une recherche de service, avec ou sans lieu (accueillant)",
        "compte", plancher="compte", pour="accueillant"),
     _F("publier_demande", "Publier",
        "Publier une demande : zones d'action (ville, cercle, dessin), disponibilités",
@@ -111,7 +111,7 @@ FONCTIONNALITES = (
        plancher="compte"),
 
     _F("mod_verifier_accueillants", "Modération",
-       "Vérifier ou refuser un compte accueillant", "moderateur", plancher="moderateur"),
+       "Vérifier (badge) ou refuser un compte accueillant", "moderateur", plancher="moderateur"),
     _F("mod_annonces", "Modération", "Masquer ou réafficher une annonce",
        "moderateur", plancher="moderateur"),
 

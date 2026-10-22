@@ -68,7 +68,8 @@ class DepotNotifications:
     _EMPLACEMENTS_OUVERTS = (
         "SELECT e.*, c.identifiant AS titulaire FROM emplacements e "
         "JOIN comptes c ON c.identifiant = e.compte_id "
-        "WHERE e.etat = 'publie' AND c.etat = 'actif' AND c.verification = 'verifie' ")
+        "WHERE e.etat = 'publie' AND c.etat = 'actif' "
+        "AND COALESCE(c.verification, '') != 'refuse' ")
     _DEMANDES_OUVERTES = (
         "SELECT DISTINCT d.* FROM demandes d JOIN comptes c ON c.identifiant = d.compte_id "
         "JOIN zones z ON z.demande_id = d.identifiant "

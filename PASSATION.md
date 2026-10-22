@@ -3,7 +3,7 @@
 Document de reprise, à donner en début de nouvelle conversation. Il dit l'état
 réel du projet, les décisions prises et ce qui reste. Rien n'y est supposé.
 
-*Dernière mise à jour : 21 octobre 2026.*
+*Dernière mise à jour : 22 octobre 2026.*
 
 ## Objet
 
@@ -35,6 +35,25 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 - [x] Hébergement : le NAS Synology, à la place de WAY2NAV (décision du
       20 octobre). Voir « Livraison 2 » et `SYNOLOGY.md`.
 - [ ] Création de `main` (production). `develop` existe depuis le 20 octobre.
+
+---
+
+## Livraison 4 — plus d'attente de vérification à l'inscription (22 octobre 2026)
+
+Demande du porteur du projet : « enlever la vérification de l'inscription ;
+quand on s'inscrit on est connecté ». Un accueillant publie désormais **dès
+son inscription**, sans attendre la modération.
+
+Ce qui reste à la modération, et pourquoi : **vérifier** un compte lui
+donne le badge « Accueillant vérifié » (il ne conditionne plus rien) ;
+**refuser** un compte, motif à l'appui, l'empêche de publier, retire ses
+recherches de la carte et arrête ses notifications — c'est le seul recours
+contre quelqu'un qui publierait au nom d'une commune sans en avoir le
+droit, le risque que le document d'origine jugeait le plus sensible.
+
+Vérifié : 108 essais verts sous Python 3.13 et 3.8.20 ; dans Chromium, une
+mairie s'inscrit, est connectée, publie aussitôt, et sa recherche paraît
+sur la carte.
 
 ---
 

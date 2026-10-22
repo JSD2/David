@@ -1,11 +1,13 @@
 """Les comptes : deux types, un seul parcours de connexion.
 
 **Accueillant** (mairie, intercommunalité, camping, entreprise…) : il publie
-des emplacements. Son compte naît « en attente de vérification » et ne
-publie rien tant que la modération ne l'a pas vérifié — sinon n'importe qui
-publierait au nom d'une commune. La vérification est manuelle pour
-l'instant ; l'Annuaire de l'administration (service-public.fr) pourra la
-préremplir plus tard, sans changer ce module.
+ses recherches **dès son inscription** (décision du 22 octobre : on
+s'inscrit, on est connecté, on publie). La modération garde deux gestes :
+**vérifier** un compte, ce qui lui donne le badge « Accueillant vérifié »,
+et **refuser** un compte qui parlerait au nom d'une commune sans en avoir
+le droit — ses recherches quittent alors la carte et ne préviennent plus
+personne. L'Annuaire de l'administration (service-public.fr) pourra
+préremplir la vérification plus tard, sans changer ce module.
 
 **Commerçant** (service ambulant) : il publie des demandes d'emplacement.
 Son SIRET est *déclaré* ; il ne devient « vérifié » que par l'API
@@ -186,7 +188,12 @@ class Compte:
 
     @property
     def accueillant_verifie(self) -> bool:
+        """Le badge : posé par la modération, il ne conditionne rien."""
         return self.est_accueillant and self.verification == "verifie"
+
+    @property
+    def accueillant_refuse(self) -> bool:
+        return self.est_accueillant and self.verification == "refuse"
 
     def public(self) -> dict:
         """Ce que n'importe qui peut lire : jamais l'adresse électronique,

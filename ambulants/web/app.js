@@ -397,9 +397,9 @@
         blocType.replaceChildren(
           champ('Vous êtes', nature), champ('Nom de l’organisation', organisation),
           champ('Commune', commune),
-          el('p', { class: 'info' }, 'Votre compte sera vérifié par la modération avant de pouvoir publier : '
-            + 'c’est ce qui empêche quiconque de publier au nom d’une commune. Une adresse électronique '
-            + 'officielle (celle de l’Annuaire de l’administration) accélère la vérification.'));
+          el('p', { class: 'info' }, 'Vous pourrez publier dès votre inscription. La modération peut ensuite '
+            + 'vérifier votre compte (badge « Accueillant vérifié ») : une adresse électronique officielle, '
+            + 'celle de l’Annuaire de l’administration, l’y aide.'));
       } else {
         blocType.replaceChildren(
           champ('Nom de l’entreprise (facultatif)', organisation),
@@ -445,7 +445,7 @@
     if (c.type_compte === 'accueillant') {
       statut = c.verification === 'verifie' ? el('span', { class: 'badge ok' }, 'Vérifié')
         : c.verification === 'refuse' ? el('span', { class: 'badge' }, `Vérification refusée : ${c.verification_motif || ''}`)
-          : el('span', { class: 'badge attente' }, 'En attente de vérification');
+          : el('span', { class: 'badge' }, 'Pas encore vérifié');
     }
     const annonces = historique ? blocHistorique(historique) : moi.annonces.length ? moi.annonces.map(a => el('div', { class: 'carte-liste' },
       el('strong', {}, a.titre), ' ', el('span', { class: 'badge' }, { publie: 'publiée', retire: 'retirée', masque: 'masquée' }[a.etat] || a.etat),
@@ -637,11 +637,11 @@
   }
 
   function ouvrirPublierEmplacement() {
-    if (!permis('publier_emplacement')) {
+    if (!permis('publier_emplacement') || etat.compte.verification === 'refuse') {
       ouvrir(el('h2', {}, 'Publier une recherche'),
         el('p', { class: 'info' }, etat.compte.verification === 'refuse'
-          ? `La vérification de votre compte a été refusée : ${etat.compte.verification_motif || ''}`
-          : 'Votre compte attend sa vérification par la modération. Vous pourrez publier dès qu’il sera vérifié.'));
+          ? `La modération a refusé ce compte : il ne peut pas publier. Motif : ${etat.compte.verification_motif || 'non précisé'}.`
+          : 'La publication est fermée pour le moment.'));
       return;
     }
     const message = el('p', { class: 'erreur', role: 'alert' });
@@ -943,7 +943,7 @@
   async function ouvrirConsole() {
     const blocs = [el('h2', {}, 'Console')];
     if (permis('mod_verifier_accueillants')) {
-      blocs.push(el('h3', {}, 'Accueillants à vérifier'));
+      blocs.push(el('h3', {}, 'Accueillants à vérifier (badge)'));
       try {
         const r = await api('/api/moderation/accueillants');
         if (!r.comptes.length) blocs.push(el('p', { class: 'aide' }, 'Aucun compte en attente.'));

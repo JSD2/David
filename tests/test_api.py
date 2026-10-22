@@ -25,10 +25,13 @@ def test_parcours_accueillant_de_l_inscription_a_la_carte(client, nouveau_client
     assert "HttpOnly" in entetes["Set-Cookie"] and "SameSite=Lax" in entetes["Set-Cookie"]
     assert corps["compte"]["verification"] == "en_attente"
 
-    # Pas encore vérifié : refusé, et l'écran sait dire pourquoi.
-    statut, corps, _ = client.post("/api/emplacements", EMPLACEMENT)
-    assert statut == 403 and "vérification" in corps["erreur"]
+    # Inscrit, donc connecté : la mairie publie tout de suite, sans badge.
+    statut, fiche, _ = client.post("/api/emplacements", EMPLACEMENT)
+    assert statut == 201 and fiche["auteur"]["verifie"] is False
+    statut, carte, _ = nouveau_client().get("/api/carte")
+    assert [a["id"] for a in carte["annonces"]] == [fiche["id"]]
 
+    # La modération pose le badge ensuite.
     modo = connecter(nouveau_client(), creer_compte(store, "Modo", role="moderateur"))
     statut, corps, _ = modo.get("/api/moderation/accueillants")
     assert [c["organisation"] for c in corps["comptes"]] == ["Mairie de Lussac"]
@@ -36,12 +39,19 @@ def test_parcours_accueillant_de_l_inscription_a_la_carte(client, nouveau_client
     ident = corps["comptes"][0]["identifiant"]
     statut, _, _ = modo.post(f"/api/moderation/accueillants/{ident}", {"decision": "verifie"})
     assert statut == 200
+    assert nouveau_client().get(f"/api/annonces/{fiche['id']}")[1]["auteur"]["verifie"] is True
 
-    statut, fiche, _ = client.post("/api/emplacements", EMPLACEMENT)
-    assert statut == 201 and fiche["auteur"]["verifie"] is True
 
-    statut, carte, _ = nouveau_client().get("/api/carte")
-    assert [a["id"] for a in carte["annonces"]] == [fiche["id"]]
+def test_accueillant_refuse_par_la_moderation(client, nouveau_client, store):
+    client.post("/api/comptes", INSCRIPTION_ACCUEILLANT)
+    _, fiche, _ = client.post("/api/emplacements", EMPLACEMENT)
+    modo = connecter(nouveau_client(), creer_compte(store, "Modo", role="moderateur"))
+    ident = modo.get("/api/moderation/accueillants")[1]["comptes"][0]["identifiant"]
+    modo.post(f"/api/moderation/accueillants/{ident}", {"decision": "refuse",
+                                                        "motif": "Pas la mairie"})
+    statut, corps, _ = client.post("/api/emplacements", EMPLACEMENT)
+    assert statut == 403 and "Pas la mairie" in corps["erreur"]
+    assert nouveau_client().get("/api/carte")[1]["annonces"] == []
 
 
 def test_inscription_sans_conditions_refusee(client):
