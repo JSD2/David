@@ -367,7 +367,7 @@
     if (onglet === 'connexion') {
       const email = el('input', { type: 'email', required: true, autocomplete: 'email' });
       const mdp = el('input', { type: 'password', required: true, autocomplete: 'current-password' });
-      const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
+      const f = el('form', { class: 'formulaire', novalidate: true, onsubmit: async (e) => {
         e.preventDefault();
         try {
           appliquerSession(await api('/api/session', { email: email.value, mot_de_passe: mdp.value }));
@@ -414,7 +414,7 @@
           onchange: () => { type.valeur = v; blocSelonType(); } }), l))));
     blocSelonType();
 
-    const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
+    const f = el('form', { class: 'formulaire', novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
       try {
         appliquerSession(await api('/api/comptes', {
@@ -602,15 +602,28 @@
       marque.textContent = `Point placé : ${lat.toFixed(5)}, ${lon.toFixed(5)}`;
     };
     async function communeDuPoint(lat, lon) {
+      let commune = null;
       try {
         const r = await fetch(`${GEOCODAGE.replace('/search', '/reverse')}?lon=${lon}&lat=${lat}&limit=1`);
-        const g = await r.json();
-        const p = (g.features || [])[0];
-        if (!p) return;
-        pos.commune = p.properties.city || ''; pos.insee = p.properties.citycode || '';
-        marque.textContent = `Point placé à ${pos.commune || 'une commune inconnue'} (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
-        if (pos.surChoix) pos.surChoix({ commune: pos.commune });
-      } catch (_) { /* le serveur prendra la commune la plus proche */ }
+        const p = ((await r.json()).features || [])[0];
+        if (p && p.properties.citycode) commune = { nom: p.properties.city || '', insee: p.properties.citycode };
+      } catch (_) { /* on passe au référentiel */ }
+      // En pleine campagne, la Base adresse ne trouve souvent aucune adresse
+      // autour du clic : la commune vient alors de notre référentiel (celle
+      // dont le centre est le plus proche). Sans cela le champ « Commune »
+      // restait vide et la publication ne partait pas.
+      if (!commune) {
+        try {
+          const c = (await api(`/api/communes?lat=${lat}&lon=${lon}`)).communes[0];
+          if (c) commune = { nom: c.nom, insee: c.code_insee };
+        } catch (_) { /* le serveur fera le même calcul à la publication */ }
+      }
+      if (pos.lat !== lat || pos.lon !== lon) return; // un autre clic est passé entre-temps
+      pos.commune = commune ? commune.nom : ''; pos.insee = commune ? commune.insee : '';
+      marque.textContent = commune
+        ? `Point placé à ${commune.nom} (${lat.toFixed(5)}, ${lon.toFixed(5)})`
+        : `Point placé : ${lat.toFixed(5)}, ${lon.toFixed(5)} — commune introuvable, indiquez-la ci-dessous.`;
+      if (commune && pos.surChoix) pos.surChoix({ commune: commune.nom });
     }
     const texte = el('input', { type: 'search', placeholder: 'Adresse ou commune' });
     const liste = el('div', { class: 'resultats-position' });
@@ -647,7 +660,7 @@
     const message = el('p', { class: 'erreur', role: 'alert' });
     const genre = { valeur: 'besoin' };
     const titre = el('input', { type: 'text', required: true, maxlength: '120', placeholder: 'Un boulanger le mardi matin' });
-    const commune = el('input', { type: 'text', required: true, maxlength: '120', value: etat.compte.commune || '' });
+    const commune = el('input', { type: 'text', maxlength: '120', value: etat.compte.commune || '' });
     const adresse = el('input', { type: 'text', maxlength: '200' });
     const elec = selectTriEtat();
     const eau = selectTriEtat();
@@ -664,7 +677,7 @@
       el('div', { class: 'cases' }, ...[['besoin', 'Sans lieu fixé : notre commune'], ['emplacement', 'Un emplacement précis']].map(([v, l]) =>
         el('label', { class: 'case' }, el('input', { type: 'radio', name: 'genre', value: v, checked: v === genre.valeur, onchange: () => { genre.valeur = v; } }), l))));
 
-    const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
+    const f = el('form', { class: 'formulaire', novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
       try {
         const r = await api('/api/emplacements', {
@@ -904,7 +917,7 @@
     pos.surChoix = (r) => { if (r.commune) commune.value = r.commune; };
     const zones = editeurZones(pos);
 
-    const f = el('form', { class: 'formulaire', onsubmit: async (e) => {
+    const f = el('form', { class: 'formulaire', novalidate: true, onsubmit: async (e) => {
       e.preventDefault();
       const champsActivite = {};
       champs.forEach(({ ch, controle }) => {

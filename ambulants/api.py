@@ -179,6 +179,16 @@ class Application:
             return self._carte
 
 
+def commit_installe() -> Optional[str]:
+    """Le commit écrit dans `COMMIT` à côté du paquet par l'installeur ;
+    None ailleurs (poste de développement), plutôt qu'une valeur devinée."""
+    try:
+        texte = (Path(__file__).resolve().parent.parent / "COMMIT").read_text().strip()
+    except OSError:
+        return None
+    return texte[:40] or None
+
+
 def _pair_de_confiance(adresse: str) -> bool:
     try:
         ip = ipaddress.ip_address(adresse)
@@ -422,7 +432,9 @@ class Gestionnaire(BaseHTTPRequestHandler):
     # -- lecture publique ---------------------------------------------------
 
     def api_sante(self) -> None:
-        self._json({"ok": True, "version": __version__,
+        # Le commit installé, écrit par l'installeur du NAS : c'est ce qui
+        # permet de vérifier en ligne qu'une mise à jour est bien arrivée.
+        self._json({"ok": True, "version": __version__, "commit": commit_installe(),
                     "schema": self.app.store.etat_schema()})
 
     def api_carte(self) -> None:
@@ -522,7 +534,23 @@ class Gestionnaire(BaseHTTPRequestHandler):
                                   "departement": c["departement"]} for c in communes[:200]]})
 
     def api_communes(self) -> None:
-        texte = parse_qs(urlsplit(self.path).query).get("q", [""])[0]
+        """Par le nom (`q`), ou par un point (`lat`, `lon`) : la commune dont
+        le centre est le plus proche. La seconde forme sert quand la Base
+        adresse nationale ne trouve aucune adresse autour d'un clic sur la
+        carte — c'est le cas courant en pleine campagne."""
+        args = parse_qs(urlsplit(self.path).query)
+        if "lat" in args or "lon" in args:
+            try:
+                lat = float(args.get("lat", [""])[0])
+                lon = float(args.get("lon", [""])[0])
+            except ValueError:
+                raise Refus(400, "Position illisible.")
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                raise Refus(400, "Position hors de la carte.")
+            proche = self.app.store.communes.plus_proche(lat, lon)
+            self._json({"communes": [proche] if proche else []})
+            return
+        texte = args.get("q", [""])[0]
         self._json({"communes": self.app.store.communes.chercher(texte[:80])},
                    cache="public, max-age=3600")
 

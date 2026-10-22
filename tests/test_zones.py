@@ -258,3 +258,21 @@ def test_api_horaires_faux_refuses(client, store):
     statut, corps, _ = client.post("/api/demandes", dict(
         DEMANDE, plages=[{"jour": "mardi", "debut": "14:00", "fin": "09:00"}]))
     assert statut == 400 and "fin" in corps["erreur"]
+
+
+def test_commune_d_un_point_en_pleine_campagne(client, store):
+    """La Base adresse ne trouve rien autour d'un clic loin des maisons :
+    la page demande alors la commune la plus proche au référentiel."""
+    statut, r, _ = client.get("/api/communes?lat=46.16&lon=1.87")
+    assert statut == 200 and r["communes"][0]["code_insee"] == GUERET
+    assert client.get("/api/communes?lat=abc&lon=1")[0] == 400
+    assert client.get("/api/communes?lat=95&lon=1")[0] == 400
+
+
+def test_recherche_publiee_sans_commune_ni_code(client, store):
+    """Le point seul suffit : le serveur retrouve la commune."""
+    connecter(client, creer_compte(store, "Gueret", "accueillant"))
+    statut, fiche, _ = client.post("/api/emplacements", dict(EMPLACEMENT, commune="", code_insee=""))
+    assert statut == 201 and fiche["commune"] == "Guéret"
+    assert [a["id"] for a in client.get("/api/carte")[1]["annonces"]] == [fiche["id"]]
+

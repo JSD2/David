@@ -38,6 +38,30 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 
 ---
 
+## Correctif du 22 octobre — « j'ai créé une demande de mairie mais le point a disparu »
+
+Reproduit ici : en posant le point **d'un clic sur la carte** loin des
+maisons, la Base adresse nationale (géocodage inverse) ne rend aucune
+adresse (`features: []`, vérifié sur un point de Corrèze). Le champ
+« Commune » restait vide, le navigateur bloquait l'envoi par une bulle hors
+de vue : rien n'était publié, le point noir restait sans suite.
+
+- La page demande alors la commune au référentiel
+  (`/api/communes?lat=…&lon=…`, la commune dont le centre est le plus
+  proche) ; le champ « Commune » n'est plus obligatoire à l'écran, le
+  serveur fait le même calcul.
+- Les formulaires ne laissent plus le navigateur bloquer en silence
+  (`novalidate`) : les refus du serveur s'écrivent dans le formulaire.
+- `/api/sante` donne le **commit installé** (`commit`), écrit par
+  l'installeur du NAS : on peut vérifier que la mise à jour est arrivée.
+
+Vérifié : 110 essais ; dans Chromium, un clic en Corrèze donne « Point
+placé à Seilhac », la recherche est publiée et reste sur la carte après
+rechargement. **Non établi** : que ce soit bien ce que le porteur du projet
+a rencontré sur le NAS.
+
+---
+
 ## Livraison 4 — plus d'attente de vérification à l'inscription (22 octobre 2026)
 
 Demande du porteur du projet : « enlever la vérification de l'inscription ;

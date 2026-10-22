@@ -39,7 +39,7 @@ def _archive(cible: Path) -> None:
     """L'arbre du dépôt dans un dossier unique, comme le tarball de GitHub."""
     with tarfile.open(cible, "w:gz") as tar:
         for chemin in ("ambulants", "synology", "pyproject.toml"):
-            tar.add(str(RACINE_DEPOT / chemin), arcname="JSD2-David-abc123/" + chemin,
+            tar.add(str(RACINE_DEPOT / chemin), arcname="JSD2-David-abc1234/" + chemin,
                     filter=lambda t: None if "__pycache__" in t.name else t)
 
 
@@ -106,7 +106,9 @@ def test_remplace_way2nav_et_garde_ses_donnees(tmp_path):
         assert (w2n / "donnees" / "spots.sqlite3").read_bytes() == b"base de WAY2NAV"
 
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/sante", timeout=5) as rep:
-            assert json.load(rep)["ok"] is True
+            sante = json.load(rep)
+        # Le commit lu dans le nom du dossier de l'archive, comme chez GitHub.
+        assert sante["ok"] is True and sante["commit"] == "abc1234"
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/robots.txt", timeout=5) as rep:
             # « test » par défaut : pas de référencement.
             assert b"Disallow: /" in rep.read()

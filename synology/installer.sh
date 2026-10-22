@@ -215,7 +215,17 @@ FIN
         exit 1
     fi
 fi
+# Le commit installé, lu dans le nom du dossier de l'archive GitHub
+# (« JSD2-David-<commit> ») et écrit à côté du paquet : /api/sante le
+# montre, et l'on peut vérifier en ligne qu'une mise à jour est arrivée.
+# Une archive d'une autre forme n'écrit rien plutôt qu'une valeur fausse.
+DOSSIER=$(tar tzf "$ARCHIVE" 2>/dev/null | head -n 1 | cut -d/ -f1 || true)
+COMMIT=$(echo "$DOSSIER" | sed -n 's/^.*-\([0-9a-f]\{7,40\}\)$/\1/p')
 rm -f "$ARCHIVE"
+if [ -n "$COMMIT" ]; then
+    echo "$COMMIT" > "$CODE.nouveau/COMMIT"
+    echo "  commit : $COMMIT"
+fi
 if [ ! -d "$CODE.nouveau/ambulants" ]; then
     echo "ECHEC : l'archive ne contient pas le paquet « ambulants »."
     rm -rf "$CODE.nouveau"
