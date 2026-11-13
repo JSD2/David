@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Services ambulants — modèle économique : note d'étude</title>
+<style>
+  @page { size: A4; }
+  :root { --texte: #1f2937; --doux: #6b7280; --accent: #1d4ed8; --bord: #d1d5db; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--texte); font: 10pt/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 20pt; margin: 0 0 2pt; }
+  .sous { color: var(--doux); margin: 0 0 10pt; }
+  h2 { font-size: 13pt; margin: 14pt 0 5pt; padding-bottom: 3pt; border-bottom: 2px solid var(--accent); break-after: avoid; }
+  p, li { margin: 0 0 4pt; }
+  ul, ol { margin: 0 0 5pt; padding-left: 15pt; }
+  table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9.2pt; }
+  th, td { border: 1px solid var(--bord); padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; }
+  tr { break-inside: avoid; }
+  .encadre { border-left: 4px solid var(--accent); background: #eff6ff; padding: 6pt 9pt; margin: 6pt 0; break-inside: avoid; }
+  .attention { border-left: 4px solid #d97706; background: #fef3c7; padding: 6pt 9pt; margin: 6pt 0; break-inside: avoid; }
+  .note { font-size: 8.5pt; color: var(--doux); }
+  section { break-inside: auto; }
+</style>
+</head>
+<body>
+
+<h1>Modèle économique : note d'étude</h1>
+<p class="sous">Services ambulants (nom provisoire) — 13 novembre 2026 — synthèse critique du document produit avec ChatGPT, pour décider quoi tester.</p>
+
+<div class="encadre">
+  <strong>En une phrase.</strong> On ne vend pas la rencontre — elle n'arrive qu'une fois et se contourne — on vend
+  ce qui se répète : l'outil du commerçant, le dossier de l'organisateur. Avant de choisir des prix ou une agence,
+  il faut trancher <strong>quel marché</strong> on sert en premier, puis vérifier en quatre semaines que quelqu'un paierait.
+</div>
+
+<h2>1. Ce qu'il faut garder du document ChatGPT</h2>
+<ul>
+  <li><strong>Ne pas faire payer le contact</strong>, mais un service qui reste utile après : c'est la bonne réponse au contournement.</li>
+  <li><strong>Gratuit pour les commerçants au départ</strong> : sans offre, aucun organisateur ne vient.</li>
+  <li><strong>Faire payer l'organisateur à l'événement</strong> plutôt qu'au mois : une petite commune n'a pas un besoin mensuel.</li>
+  <li><strong>L'appel à candidatures groupé</strong> (un événement, plusieurs emplacements, un tableau de sélection) et le
+    <strong>dossier de pièces</strong> du commerçant (assurance, carte d'ambulant), déposé une fois et réutilisé.</li>
+  <li><strong>Les prudences juridiques</strong> : le site ne délivre pas d'autorisation ; une mairie qui attribue une place sur le
+    domaine public doit rester impartiale ; encaisser pour le compte d'un tiers demande un prestataire de paiement agréé.</li>
+</ul>
+
+<h2>2. Ce qu'il faut écarter ou corriger</h2>
+<table>
+  <tr><th style="width:34%">Dans le document</th><th>Le problème</th></tr>
+  <tr><td>Tous les prix, volumes et chiffres d'affaires (19 €, 49 €, 5 %, 200 abonnés, 576 000 € par an…)</td>
+    <td>Ce sont des hypothèses, non des prix de marché — le document le dit lui-même, et deux de ses totaux étaient faux.
+      Aucun n'est à reprendre dans un business plan avant d'avoir été testé.</td></tr>
+  <tr><td>Commission de 5 % sur les réservations</td>
+    <td>Elle ne vaut que si l'organisateur <em>paie</em> le professionnel (une entreprise qui réserve un food truck).
+      Quand une mairie accueille un commerçant, c'est lui qui paie une redevance et vend aux habitants : il n'y a
+      rien à commissionner. Et elle impose un prestataire de paiement dès le départ.</td></tr>
+  <tr><td>« Tous les échanges passent par la plateforme », coordonnées masquées</td>
+    <td>Les coordonnées d'une mairie sont publiques : le masquage ne retient personne et gêne les utilisateurs.
+      Le document reconnaît d'ailleurs qu'on ne peut pas l'empêcher.</td></tr>
+  <tr><td>Quatre sources de revenus à la fois, quinze modules</td>
+    <td>Trop pour un lancement. Une seule source bien validée vaut mieux.</td></tr>
+  <tr><td>Agence web, 18 000 à 25 000 € pour un MVP ; lancement en Normandie</td>
+    <td>Un site fonctionne déjà (carte, comptes, recherches des mairies, zones des services, notifications, filtres,
+      droits avec niveau « abonné »). La dépense d'agence n'est pas nécessaire pour tester. La zone de lancement
+      reste à décider (les essais ont été faits sur la Creuse).</td></tr>
+  <tr><td>Recentrage sur l'événementiel (festivals, exposants, animations)</td>
+    <td>C'est un autre marché que celui du site actuel (services réguliers dans les communes). Voir ci-dessous :
+      c'est <strong>la</strong> décision à prendre.</td></tr>
+</table>
+
+<h2>3. La décision de fond : deux marchés, deux économies</h2>
+<table>
+  <tr><th style="width:18%"></th><th style="width:41%">A. Présence régulière en commune</th><th>B. Événements et sites privés</th></tr>
+  <tr><td><strong>Exemple</strong></td><td>Un boulanger chaque mardi à Bourganeuf</td><td>Quatre food trucks pour la fête de la ville ; un camion le midi dans une zone d'activité</td></tr>
+  <tr><td><strong>Fréquence du besoin</strong></td><td>Une rencontre, puis des années de relation directe</td><td>Un nouveau besoin à chaque événement, des prestataires qui tournent</td></tr>
+  <tr><td><strong>Qui paie qui</strong></td><td>Le commerçant paie une redevance à la mairie ; les habitants paient le commerçant</td><td>Souvent l'organisateur paie le prestataire, ou lui loue l'emplacement</td></tr>
+  <tr><td><strong>Ce qu'on peut vendre</strong></td><td>L'outil de tournée du commerçant (calendrier, page « où suis-je », alerte aux habitants) ; l'outil de la collectivité (appel à candidatures, convention, planning de la place)</td><td>La publication et la gestion de l'événement, payées à l'unité ; plus tard une commission sur les réservations privées</td></tr>
+  <tr><td><strong>Acheteur</strong></td><td>Commerçant ; intercommunalité ou département (une vente, des dizaines de communes)</td><td>Mairies, comités des fêtes, entreprises, campings, centres commerciaux</td></tr>
+  <tr><td><strong>Atout</strong></td><td>Créneau libre ; besoin réel (plus de 21 000 communes sans commerce, 62 %, Insee) ; argent public fléché</td><td>Le client revient de lui-même ; revenu dès le premier événement</td></tr>
+  <tr><td><strong>Risque</strong></td><td>Vente lente aux collectivités ; petits commerçants peu enclins à s'abonner</td><td>Concurrence installée sur les food trucks (France Foodtruck, HelloTrucks, Spot4Truck, Izifete)</td></tr>
+</table>
+<p>Le site actuel sert A. Les réponses données à ChatGPT (« professionnels de l'événementiel ») mènent vers B.
+  Les deux peuvent cohabiter sur la même carte, mais <strong>un seul doit porter le premier revenu</strong>.</p>
+
+<h2>4. Quatre hypothèses à tester, par ordre de priorité proposé</h2>
+<table>
+  <tr><th style="width:4%">#</th><th style="width:30%">Hypothèse</th><th style="width:14%">Marché</th><th>Ce que le site a déjà</th><th style="width:26%">Ce qu'il faudrait construire</th></tr>
+  <tr><td>1</td><td>Un organisateur paie <strong>à l'événement</strong> pour publier un appel à candidatures et gérer les réponses</td><td>B, et A pour les mairies</td><td>Recherche de la mairie, notification, zones, filtres</td><td>Candidature, sélection, messagerie, dossier de pièces</td></tr>
+  <tr><td>2</td><td>Un commerçant paie <strong>au mois</strong> pour son outil de tournée et l'alerte aux habitants</td><td>A</td><td>Zones, disponibilités, historique</td><td>Calendrier de tournée, page publique, abonnement des habitants</td></tr>
+  <tr><td>3</td><td>Une intercommunalité paie <strong>à l'année</strong> pour toutes ses communes</td><td>A</td><td>Comptes accueillants, tableau des droits</td><td>Convention type, planning des places, bilan chiffré</td></tr>
+  <tr><td>4</td><td>Commission sur les <strong>réservations privées</strong> payées en ligne</td><td>B</td><td>—</td><td>Devis, paiement par un prestataire agréé : à garder pour plus tard</td></tr>
+</table>
+
+<h2>5. Ordres de grandeur (arithmétique seulement)</h2>
+<p>Avec les prix avancés par ChatGPT — <em>non vérifiés</em> — voici ce qu'il faudrait vendre pour 3 000 € de recettes par mois :</p>
+<table>
+  <tr><th>Source</th><th>Prix supposé</th><th>Volume nécessaire</th></tr>
+  <tr><td>Abonnement commerçant</td><td>19 € par mois</td><td>158 abonnés payants</td></tr>
+  <tr><td>Publication d'un événement</td><td>49 €</td><td>62 événements par mois</td></tr>
+  <tr><td>Contrat annuel de collectivité</td><td>490 à 1 490 € par an</td><td>25 à 74 contrats</td></tr>
+</table>
+<p class="note">Ce tableau ne dit pas que ces volumes sont atteignables : il dit ce qu'il faut demander au terrain.
+  Côté dépenses, le site tourne aujourd'hui sur un NAS personnel ; le coût principal est le temps de prospection.</p>
+
+<h2>6. Plan d'étude : quatre semaines, sans rien développer de plus</h2>
+<ol>
+  <li><strong>Semaines 1-2 — 25 entretiens</strong> de vingt minutes : 10 mairies ou intercommunalités, 10 commerçants
+    ambulants, 5 organisateurs privés (camping, entreprise, comité des fêtes).</li>
+  <li><strong>Les questions</strong> : comment trouvez-vous aujourd'hui (un commerçant / un emplacement) ? Combien de fois par an ?
+    Qu'est-ce qui vous prend le plus de temps ? Montrer le site : qu'utiliseriez-vous ? Paieriez-vous pour cela, combien,
+    et qui signe la dépense ?</li>
+  <li><strong>Semaine 3 — une offre écrite</strong> d'une page par hypothèse retenue, avec un prix, envoyée aux personnes
+    rencontrées : on mesure les « oui » fermes, pas l'intérêt poli.</li>
+  <li><strong>Semaine 4 — décision</strong> : marché A ou B d'abord, une source de revenu, une zone de lancement.</li>
+</ol>
+<div class="attention">
+  <strong>Critère proposé.</strong> Une hypothèse est retenue si au moins 3 personnes sur 10 de la cible donnent un prix et
+  acceptent d'être les premiers clients ; elle est abandonnée si personne ne sait dire qui paierait.
+</div>
+
+<h2>7. À décider entre vous avant de commencer</h2>
+<ul>
+  <li>Marché prioritaire : <strong>A</strong> (services réguliers en commune), <strong>B</strong> (événements et sites privés), ou B pour le revenu et A pour la mission ?</li>
+  <li>Zone d'étude : là où vous avez des contacts (Normandie ? Creuse ?).</li>
+  <li>Qui mène les entretiens, et d'ici quelle date.</li>
+  <li>Agence : rien à engager tant que l'étude n'a pas tranché.</li>
+</ul>
+
+<p class="note">Sources des faits cités : Insee, communes sans commerce (chiffre repris par la presse en 2023) ; programme
+  de reconquête du commerce rural (entreprises.gouv.fr) ; sites des plateformes nommées. Les règles de commande publique
+  et de paiement évoquées par ChatGPT n'ont pas été vérifiées ici : à faire confirmer par un professionnel avant tout engagement.</p>
+
+</body>
+</html>
