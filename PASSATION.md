@@ -31,7 +31,10 @@ services ambulants » (19 octobre 2026). Modèle technique : WAY2NAV (jsd2/paddl
 - [ ] Nom du site et nom de domaine (« Services ambulants » et le paquet
       `ambulants` sont provisoires ; l'écran l'affiche).
 - [ ] Quel côté remplir en premier ? Une carte vide décourage les deux.
-- [ ] Modèle économique, parmi les trois options.
+- [ ] Modèle économique : à l'étude. Décision du 13 novembre : commencer par le
+      marché A (présence régulière en commune), en Normandie. Voir
+      `docs/etude/` (note de synthèse et kit d'entretiens). Rien à développer
+      pour ce marché avant le dépouillement des entretiens.
 - [x] Hébergement : le NAS Synology, à la place de WAY2NAV (décision du
       20 octobre). Voir « Livraison 2 » et `SYNOLOGY.md`.
 - [ ] Création de `main` (production). `develop` existe depuis le 20 octobre.
